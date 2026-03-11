@@ -28,3 +28,10 @@
 ## Stage 6 - Validation
 - run prompt benchmarks on one real robotics repo
 - compare local-only vs premium fallback behavior
+
+## Optional later stage - Add-ons
+- consider `vLLM` once Ollama-only workflow is productive
+- consider LiteLLM when one unified API would simplify client routing
+- consider OpenWebUI for local prompt testing and model comparison
+- consider automation and observability tools only after a real workflow need appears
+- keep details in `docs/optional-addons-later.md`

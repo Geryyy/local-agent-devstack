@@ -67,9 +67,11 @@ If you do not need custom values yet, you can skip creating `.env`.
 
 ### Phase 2: On the laptop
 ```bash
+cp .env.example .env
 cd client/scripts
 ./install_client_tools.sh
-./setup_ssh_tunnel.sh youruser 10.23.0.1
+./setup_ssh_tunnel.sh
+./verify_client_path.sh
 ```
 
 ### 3) In the devcontainer

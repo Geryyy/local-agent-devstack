@@ -5,11 +5,8 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-Environment=WORKSTATION_USER=YOUR_WORKSTATION_USER
-Environment=WORKSTATION_HOST=WORKSTATION_HOST_OR_IP
-Environment=LOCAL_PORT=11434
-Environment=REMOTE_PORT=11434
-ExecStart=/usr/bin/ssh -N -L ${LOCAL_PORT}:localhost:${REMOTE_PORT} ${WORKSTATION_USER}@${WORKSTATION_HOST}
+EnvironmentFile=%h/.config/local-agent-devstack/client.env
+ExecStart=/usr/bin/ssh -N -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -L ${LOCAL_OLLAMA_PORT}:localhost:${OLLAMA_PORT} ${WORKSTATION_USER}@${WORKSTATION_HOST}
 Restart=always
 RestartSec=5
 

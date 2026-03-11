@@ -1,0 +1,14 @@
+# Premium escalation is optional. Keep local inference as the default path.
+# For local mode, run: codex --oss
+# When you intentionally use OpenAI, choose a current premium model for your account and task.
+# Example model names current as of March 11, 2026:
+# model = "gpt-5.3-codex"
+# model = "gpt-5.2"
+# model = "gpt-5.4-pro"
+
+model_provider = "openai"
+oss_provider = "ollama"
+
+[model_providers.ollama]
+name = "Ollama"
+base_url = "http://host.docker.internal:11434/v1"

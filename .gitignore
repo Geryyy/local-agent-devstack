@@ -1,0 +1,8 @@
+.env
+*.local
+*.log
+*.tmp
+*.swp
+.DS_Store
+__pycache__/
+.vscode/

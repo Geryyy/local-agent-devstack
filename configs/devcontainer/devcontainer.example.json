@@ -1,0 +1,10 @@
+{
+  "name": "ros2-dev",
+  "runArgs": [
+    "--add-host=host.docker.internal:host-gateway"
+  ],
+  "containerEnv": {
+    "LOCAL_LLM_BASE": "http://host.docker.internal:11434",
+    "LOCAL_LLM_OPENAI_BASE": "http://host.docker.internal:11434/v1"
+  }
+}

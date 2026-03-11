@@ -1,0 +1,17 @@
+[Unit]
+Description=SSH tunnel from laptop localhost:11434 to workstation localhost:11434
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Environment=WORKSTATION_USER=YOUR_WORKSTATION_USER
+Environment=WORKSTATION_HOST=WORKSTATION_HOST_OR_IP
+Environment=LOCAL_PORT=11434
+Environment=REMOTE_PORT=11434
+ExecStart=/usr/bin/ssh -N -L ${LOCAL_PORT}:localhost:${REMOTE_PORT} ${WORKSTATION_USER}@${WORKSTATION_HOST}
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target

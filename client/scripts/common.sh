@@ -18,6 +18,7 @@ load_repo_env() {
   export OLLAMA_HOST="${OLLAMA_HOST:-127.0.0.1}"
   export OLLAMA_PORT="${OLLAMA_PORT:-11434}"
   export LOCAL_OLLAMA_PORT="${LOCAL_OLLAMA_PORT:-11434}"
+  export LOCAL_OLLAMA_BIND_HOST="${LOCAL_OLLAMA_BIND_HOST:-127.0.0.1}"
 }
 
 require_command() {
@@ -31,5 +32,6 @@ require_command() {
 print_client_settings() {
   echo "[INFO] Workstation SSH target: ${WORKSTATION_USER}@${WORKSTATION_HOST}"
   echo "[INFO] Laptop local forward port: ${LOCAL_OLLAMA_PORT}"
+  echo "[INFO] Laptop tunnel bind address: ${LOCAL_OLLAMA_BIND_HOST}"
   echo "[INFO] Workstation Ollama endpoint: ${OLLAMA_HOST}:${OLLAMA_PORT}"
 }

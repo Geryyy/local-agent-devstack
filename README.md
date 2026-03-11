@@ -74,11 +74,19 @@ cd client/scripts
 ./verify_client_path.sh
 ```
 
+If the devcontainer needs to reach the laptop tunnel through `host.docker.internal` on Linux, set `LOCAL_OLLAMA_BIND_HOST` before opening the tunnel and then restart it.
+
 ### 3) In the devcontainer
 Add the host mapping from `configs/devcontainer/devcontainer.example.json` and verify:
 
 ```bash
 curl http://host.docker.internal:11434/api/tags
+```
+
+If you want to run the repo verification script from inside the devcontainer, use:
+
+```bash
+./client/scripts/verify_client_path.sh http://host.docker.internal:11434
 ```
 
 ## Important notes

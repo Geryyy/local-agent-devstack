@@ -30,15 +30,15 @@ Use a VPN between the laptop and workstation and run the exact same SSH tunnel f
 
 ## Recommended model policy
 
-Primary local models on the workstation for a balanced 16 GB GPU setup:
+Primary local models on the workstation for a stronger agent-friendly default:
 
-- `qwen2.5-coder:7b` for code editing, refactors, repo understanding
-- `qwen2.5:7b` for general reasoning, planning, architecture
-- `granite-code:8b` as a secondary fallback
+- `gpt-oss:20b` for agent-style coding, repo understanding, and general reasoning
+- `qwen2.5-coder:7b` as a smaller fallback when you want lower latency
+- use separate Continue roles if you later want to split code and reasoning back out
 
 Optional larger-model experimentation:
 
-- `gpt-oss:20b` only if you deliberately opt in and accept slower throughput or tighter memory pressure
+- `qwen3-coder:30b` only if you deliberately opt in and accept higher VRAM use
 
 Closed-model escalation on the laptop:
 
@@ -76,7 +76,30 @@ cd client/scripts
 
 If the devcontainer needs to reach the laptop tunnel through `host.docker.internal` on Linux, set `LOCAL_OLLAMA_BIND_HOST` before opening the tunnel and then restart it.
 
-### 3) In the devcontainer
+### 3) Continue config choice
+If Continue runs on the laptop host, use `configs/continue/config.yaml`, which assumes the SSH tunnel is reachable on localhost and points at:
+
+```bash
+http://127.0.0.1:11434
+```
+
+That file matches the default host-only tunnel bind:
+
+```bash
+LOCAL_OLLAMA_BIND_HOST=127.0.0.1
+```
+
+It also usually works if the tunnel is opened on all interfaces:
+
+```bash
+LOCAL_OLLAMA_BIND_HOST=0.0.0.0
+```
+
+If you bind the tunnel to a specific Linux bridge address such as `172.17.0.1`, update the live Continue config to use that address instead of `127.0.0.1`.
+
+If Continue runs inside a devcontainer, use `configs/continue/devcontainer.config.yaml`.
+
+### 4) In the devcontainer
 Add the host mapping from `configs/devcontainer/devcontainer.example.json` and verify:
 
 ```bash

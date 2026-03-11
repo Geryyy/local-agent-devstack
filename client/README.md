@@ -30,13 +30,28 @@ On Linux bridge-network devcontainers, that only works if the SSH tunnel is not 
    `./client/scripts/setup_ssh_tunnel.sh`
 4. verify the laptop-local path:
    `./client/scripts/verify_client_path.sh`
-5. add the `host.docker.internal` mapping from `configs/devcontainer/devcontainer.example.json`
+5. for Continue running on the laptop host, use `configs/continue/config.yaml`
+6. if you also use a devcontainer, add the `host.docker.internal` mapping from `configs/devcontainer/devcontainer.example.json` and use `configs/continue/devcontainer.config.yaml` there
 
 If you run the verification script from inside the devcontainer, pass the laptop-host endpoint explicitly:
 
 - `./client/scripts/verify_client_path.sh http://host.docker.internal:11434`
 
 Using `LOCAL_OLLAMA_BIND_HOST=host.docker.internal` also works for that check, but it repurposes the tunnel bind variable and is not the intended setup knob.
+
+## Continue endpoint choice
+
+Use the endpoint that matches where Continue is running:
+
+- laptop host / VS Code on the client machine:
+  `http://127.0.0.1:11434` when the tunnel is bound to localhost
+- inside a devcontainer with the Docker host mapping added:
+  `http://host.docker.internal:11434`
+
+If your laptop tunnel is bound to a specific bridge address like `172.17.0.1`, host-side Continue must use that exact address instead of `127.0.0.1`.
+
+If Continue is running on the laptop host and you point it at `host.docker.internal`, Linux commonly returns:
+`getaddrinfo ENOTFOUND host.docker.internal`
 
 ## Devcontainer note for Linux
 

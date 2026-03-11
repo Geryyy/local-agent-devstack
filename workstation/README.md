@@ -26,13 +26,13 @@ This machine hosts the local models and is the Phase 1 implementation target.
 
 ## Default model policy
 
-Phase 1 uses an 8B-first local model set so the workstation stays responsive on a 16 GB GPU:
+Phase 1 now defaults to a stronger local model set aimed at agent-style repo work:
 
-- code: `qwen2.5-coder:7b`
-- reasoning: `qwen2.5:7b`
-- fallback: `granite-code:8b`
+- code: `gpt-oss:20b`
+- reasoning: `gpt-oss:20b`
+- fallback: `qwen2.5-coder:7b`
 
-If you want to experiment with a larger open model later, enable the opt-in experimental pull in `.env`.
+If you want to experiment with a larger open model later, enable the opt-in experimental pull in `.env` and set it to `qwen3-coder:30b` or another workstation-sized model you prefer.
 
 ## Notes
 

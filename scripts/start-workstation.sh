@@ -45,4 +45,7 @@ echo "Ollama    : http://localhost:11434"
 echo "Qdrant    : http://localhost:6333"
 echo
 echo "Default local model: ${OLLAMA_LOCAL_MODEL}"
+if [[ -n "${OLLAMA_HEAVY_MODEL:-}" ]]; then
+  echo "Optional heavy local model: ${OLLAMA_HEAVY_MODEL}"
+fi
 echo "Optional vLLM profile: docker compose --profile vllm up -d vllm"

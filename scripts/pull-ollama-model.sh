@@ -6,14 +6,15 @@ if [[ ! -f ".env" ]]; then
   exit 1
 fi
 
-model_name="$(rg '^OLLAMA_LOCAL_MODEL=' .env | cut -d= -f2-)"
+env_var_name="${1:-OLLAMA_LOCAL_MODEL}"
+model_name="$(rg "^${env_var_name}=" .env | cut -d= -f2-)"
 
 if [[ -z "${model_name}" ]]; then
-  echo "OLLAMA_LOCAL_MODEL is not set in .env."
+  echo "${env_var_name} is not set in .env."
   exit 1
 fi
 
-echo "Pulling Ollama model: ${model_name}"
+echo "Pulling Ollama model from ${env_var_name}: ${model_name}"
 docker compose up -d ollama >/dev/null
 docker exec ollama ollama pull "${model_name}"
 docker exec ollama ollama list

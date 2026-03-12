@@ -7,6 +7,10 @@ local_models:
     provider: ollama
     base_url: http://ollama:11434
     model: qwen2.5-coder:7b
+  ollama_coder_heavy:
+    provider: ollama
+    base_url: http://ollama:11434
+    model: qwen3-coder:30b
   ollama_build:
     provider: ollama
     base_url: http://ollama:11434

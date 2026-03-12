@@ -20,6 +20,7 @@ This repo uses a local-first routing policy.
 ### Code agent
 
 - primary: `ollama_coder`
+- optional heavy local model: `ollama_coder_heavy`
 - fallback: `claude_sonnet`
 - local fallback: `ollama_fast`
 
@@ -35,6 +36,8 @@ This repo uses a local-first routing policy.
 - fallback: `ollama_coder`
 
 ## Escalation rules
+
+Keep `ollama_coder_heavy` as an operator-selected option, not the default always-on coder route, on 16 GB class GPUs. It can be useful for single heavy coding runs, but it leaves very little VRAM headroom for longer contexts or concurrent agents.
 
 Keep local for:
 

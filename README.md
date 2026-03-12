@@ -188,6 +188,15 @@ To start the optional `vllm` profile as an additional backend:
 docker compose --profile vllm up -d vllm
 ```
 
+For an optional heavier Ollama coder model on this workstation:
+
+```bash
+./scripts/pull-ollama-model.sh OLLAMA_HEAVY_MODEL
+ollama run qwen3-coder:30b "Reply with exactly: heavy coder ready"
+```
+
+`qwen3-coder:30b` works locally on the tested 16 GB RTX 5070 Ti, but it used about 15.6 GiB VRAM for a tiny prompt. Treat it as a manual or single-run heavy coder, not the default multi-agent model.
+
 ## Security notes
 
 - Keep premium API keys on the workstation only.

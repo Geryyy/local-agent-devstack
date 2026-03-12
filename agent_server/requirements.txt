@@ -5,3 +5,4 @@ pyyaml
 httpx
 redis
 psycopg[binary]
+langgraph

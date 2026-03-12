@@ -37,8 +37,10 @@ Use the Agent API for:
 
 - task creation
 - task status inspection
-- starter planner-driven task decomposition
+- planner-driven task decomposition
+- project-aware planning briefs
+- durable automated runs that can edit and execute in a mounted repo
 
 ## Current boundary
 
-This repo does not yet claim full autonomous orchestration. The shipped Agent API is intentionally a starter scaffold that makes the future architecture concrete without overstating what is already implemented.
+This repo now supports a practical local-first execution loop, but it is still an early backend rather than a fully polished orchestration platform. It can persist tasks and runs, generate project-aware plans, edit files in mounted repos, and run verification commands. Streaming UX, richer retrieval, and stricter execution controls are still future work.

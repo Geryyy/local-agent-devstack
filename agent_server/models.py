@@ -38,3 +38,18 @@ class TaskRecord(BaseModel):
     premium_calls_used: int = 0
     notes: List[str] = Field(default_factory=list)
     metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class RunRequest(BaseModel):
+    commands_override: List[str] = Field(default_factory=list)
+
+
+class RunRecord(BaseModel):
+    id: str
+    task_id: str
+    status: str
+    planner_output: Optional[Dict[str, Any]] = None
+    code_result: Optional[Dict[str, Any]] = None
+    touched_files: List[str] = Field(default_factory=list)
+    command_results: List[Dict[str, Any]] = Field(default_factory=list)
+    error: Optional[str] = None

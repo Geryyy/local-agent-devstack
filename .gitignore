@@ -6,3 +6,7 @@
 .DS_Store
 __pycache__/
 .vscode/
+.pytest_cache/
+.venv/
+venv/
+playground/dummy-agent-app/todo.json

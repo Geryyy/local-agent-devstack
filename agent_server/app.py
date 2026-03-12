@@ -1,27 +1,32 @@
 from __future__ import annotations
 
+import asyncio
 import uuid
 from typing import Dict, List
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import StreamingResponse
 
 from build_agent import describe_build_agent
 from code_agent import describe_code_agent
+from db import get_run as db_get_run
+from db import get_task as db_get_task
+from db import init_db, list_runs as db_list_runs, list_tasks as db_list_tasks, save_task
 from llm_client import generate_role_text
-from models import TaskRecord, TaskRequest, TaskPhase
+from models import RunRecord, RunRequest, TaskRecord, TaskRequest, TaskPhase
 from planner_agent import plan_to_record
 from research_agent import describe_research_agent
 from routing import load_models_config, load_routing_config, validate_model_references
+from workflow import execute_task_run
 from workspace_context import resolve_project_path, summarize_project
 
 app = FastAPI(title="local-agent-devstack Agent API")
-
-TASKS: Dict[str, TaskRecord] = {}
 
 
 @app.on_event("startup")
 def validate_configs() -> None:
     validate_model_references(load_routing_config(), load_models_config())
+    init_db()
 
 
 @app.get("/health")
@@ -48,20 +53,21 @@ def create_task(task: TaskRequest) -> TaskRecord:
     record = plan_to_record(task_id, task)
     record.metadata["constraints"] = task.constraints
     record.metadata["acceptance_criteria"] = task.acceptance_criteria
-    TASKS[task_id] = record
+    save_task(task_id, record.model_dump(mode="json"))
     return record
 
 
 @app.get("/tasks", response_model=List[TaskRecord])
 def list_tasks() -> List[TaskRecord]:
-    return list(TASKS.values())
+    return [TaskRecord.model_validate(item) for item in db_list_tasks()]
 
 
 @app.get("/tasks/{task_id}", response_model=TaskRecord)
 def get_task(task_id: str) -> TaskRecord:
-    if task_id not in TASKS:
+    payload = db_get_task(task_id)
+    if payload is None:
         raise HTTPException(status_code=404, detail="Task not found")
-    return TASKS[task_id]
+    return TaskRecord.model_validate(payload)
 
 
 def _require_project(task: TaskRecord) -> dict:
@@ -101,7 +107,7 @@ async def draft_plan(task_id: str) -> dict:
 
     generated = await generate_role_text("planner", prompt)
     record.notes.append("Planner drafted a project-aware implementation plan.")
-    TASKS[task_id] = record
+    save_task(task_id, record.model_dump(mode="json"))
     return {
         "task_id": task_id,
         "project_summary": project_summary,
@@ -157,10 +163,7 @@ def task_briefs(task_id: str) -> dict:
 
 @app.post("/tasks/{task_id}/advance", response_model=TaskRecord)
 def advance_task(task_id: str) -> TaskRecord:
-    if task_id not in TASKS:
-        raise HTTPException(status_code=404, detail="Task not found")
-
-    record = TASKS[task_id]
+    record = get_task(task_id)
     order = [
         TaskPhase.QUEUED,
         TaskPhase.PLANNING,
@@ -180,5 +183,92 @@ def advance_task(task_id: str) -> TaskRecord:
         record.phase = order[idx + 1]
         record.notes.append(f"Task advanced to phase: {record.phase.value}")
 
-    TASKS[task_id] = record
+    save_task(task_id, record.model_dump(mode="json"))
     return record
+
+
+@app.post("/tasks/{task_id}/runs", response_model=RunRecord)
+async def create_run(task_id: str, run_request: RunRequest) -> RunRecord:
+    record = get_task(task_id)
+    if run_request.commands_override:
+        record.metadata["commands_override"] = run_request.commands_override
+        save_task(task_id, record.model_dump(mode="json"))
+
+    result = await execute_task_run(record)
+    return RunRecord(
+        id=result["run_id"],
+        task_id=task_id,
+        status=result["status"],
+        planner_output=result.get("planner_output"),
+        code_result=result.get("code_result"),
+        touched_files=result.get("touched_files", []),
+        command_results=result.get("command_results", []),
+        error=result.get("error"),
+    )
+
+
+@app.get("/tasks/{task_id}/runs", response_model=List[RunRecord])
+def list_task_runs(task_id: str) -> List[RunRecord]:
+    _ = get_task(task_id)
+    return [
+        RunRecord(
+            id=item["run_id"],
+            task_id=task_id,
+            status=item["status"],
+            planner_output=item.get("planner_output"),
+            code_result=item.get("code_result"),
+            touched_files=item.get("touched_files", []),
+            command_results=item.get("command_results", []),
+            error=item.get("error"),
+        )
+        for item in db_list_runs(task_id)
+    ]
+
+
+@app.get("/runs/{run_id}", response_model=RunRecord)
+def get_run(run_id: str) -> RunRecord:
+    payload = db_get_run(run_id)
+    if payload is None:
+        raise HTTPException(status_code=404, detail="Run not found")
+    return RunRecord(
+        id=payload["run_id"],
+        task_id=payload["task"]["id"],
+        status=payload["status"],
+        planner_output=payload.get("planner_output"),
+        code_result=payload.get("code_result"),
+        touched_files=payload.get("touched_files", []),
+        command_results=payload.get("command_results", []),
+        error=payload.get("error"),
+    )
+
+
+@app.get("/runs/{run_id}/stream")
+async def stream_run(run_id: str) -> StreamingResponse:
+    async def event_source():
+        last_payload = None
+        while True:
+            payload = db_get_run(run_id)
+            if payload is None:
+                yield "event: error\ndata: Run not found\n\n"
+                break
+
+            if payload != last_payload:
+                record = RunRecord(
+                    id=payload["run_id"],
+                    task_id=payload["task"]["id"],
+                    status=payload["status"],
+                    planner_output=payload.get("planner_output"),
+                    code_result=payload.get("code_result"),
+                    touched_files=payload.get("touched_files", []),
+                    command_results=payload.get("command_results", []),
+                    error=payload.get("error"),
+                )
+                yield f"event: update\ndata: {record.model_dump_json()}\n\n"
+                last_payload = payload
+
+            if payload["status"] in {"completed", "failed"}:
+                break
+
+            await asyncio.sleep(1)
+
+    return StreamingResponse(event_source(), media_type="text/event-stream")

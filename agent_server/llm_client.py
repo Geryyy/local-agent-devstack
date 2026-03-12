@@ -41,6 +41,9 @@ async def generate_role_text(role_name: str, prompt: str) -> Dict[str, Any]:
                 "model": config["model"],
                 "prompt": prompt,
                 "stream": False,
+                "options": {
+                    "temperature": 0,
+                },
             },
         )
         response.raise_for_status()

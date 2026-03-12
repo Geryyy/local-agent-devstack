@@ -5,8 +5,8 @@
 - copy `.env.example` to `.env`
 - set workstation-local credentials and passwords
 - join Tailscale on the workstation
-- if native Ollama is already installed on the workstation, keep using it as the default local model endpoint
 - start the Docker stack with `./scripts/start-workstation.sh`
+- pull the default local model with `./scripts/pull-ollama-model.sh`
 
 ## Stage 2 - Client access
 
@@ -19,6 +19,8 @@
 - create tasks through the Agent API
 - verify planner-driven initial decomposition
 - verify phase progression through the task lifecycle endpoints
+- verify durable task and run storage
+- verify automated runs can edit a repo and execute verification commands
 
 ## Stage 4 - Project integration
 
@@ -29,7 +31,7 @@
 
 ## Stage 5 - Later expansion
 
-- add durable run storage
 - add richer retrieval and memory workflows
 - add orchestration tracing
-- add LangGraph or equivalent only when the starter flow is already useful
+- add streaming progress and richer operator dashboards
+- add stronger execution sandboxing and approval controls

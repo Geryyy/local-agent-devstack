@@ -8,13 +8,13 @@ This repo defines a local-first multi-agent development stack built around a GPU
 
 Runs the full AI stack:
 
+- Ollama
 - Open WebUI
-- vLLM
 - Qdrant
 - Redis
 - Postgres
 - Agent API
-- workstation-native Ollama by default
+- optional `vllm` profile
 
 Responsibilities:
 
@@ -66,14 +66,15 @@ Implemented now:
 - Docker Compose workstation stack
 - Tailscale-first networking guidance
 - YAML-backed model routing config
-- starter FastAPI agent service
+- FastAPI agent service with durable task and run state in Postgres
+- LangGraph-backed local execution loop for planner, coder, and build steps
+- writable workspace mounts so the backend can edit and execute in target repos
 - Open WebUI can start without a live vLLM container, which helps on workstations where vLLM image/runtime compatibility is still being tuned
-- Open WebUI can target a host-native Ollama, which avoids port conflicts on workstations that already run Ollama outside Docker
-- vLLM is intentionally pinned to a specific image tag in `.env` rather than `latest` so the default stack is more stable on workstation GPUs
+- containerized Ollama is the default local inference path
+- vLLM is intentionally pinned to a specific image tag in `.env`, but stays opt-in behind a Compose profile
 
 Planned later:
 
-- LangGraph or equivalent orchestration
-- durable run state
 - retrieval-backed memory workflows
 - streaming progress and richer operator dashboards
+- stronger execution sandboxing and approval controls

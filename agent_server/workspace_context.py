@@ -21,6 +21,7 @@ TEXT_EXTENSIONS = {
 IGNORED_DIRS = {
     ".git",
     ".venv",
+    "venv",
     "node_modules",
     "__pycache__",
     ".mypy_cache",

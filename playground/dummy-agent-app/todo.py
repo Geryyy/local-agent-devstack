@@ -4,7 +4,6 @@ import argparse
 import json
 from pathlib import Path
 
-
 DEFAULT_DB = Path("todo.json")
 
 
@@ -32,16 +31,30 @@ def cmd_list(args: argparse.Namespace) -> None:
         print(f"{index}. [{marker}] {item['title']}")
 
 
+def cmd_done(args: argparse.Namespace) -> None:
+    items = load_items()
+    if 1 <= args.index <= len(items):
+        items[args.index - 1]["done"] = True
+        save_items(items)
+        print(f"marked as done: {items[args.index - 1]['title']}")
+    else:
+        print("Invalid item index")
+
+
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="todo")
+    parser = argparse.ArgumentParser(description="A tiny todo CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    add_parser = subparsers.add_parser("add")
+    add_parser = subparsers.add_parser("add", help="Add a new task")
     add_parser.add_argument("title")
     add_parser.set_defaults(func=cmd_add)
 
-    list_parser = subparsers.add_parser("list")
+    list_parser = subparsers.add_parser("list", help="List all tasks")
     list_parser.set_defaults(func=cmd_list)
+
+    done_parser = subparsers.add_parser("done", help="Mark a task as done")
+    done_parser.add_argument("index", type=int)
+    done_parser.set_defaults(func=cmd_done)
     return parser
 
 

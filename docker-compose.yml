@@ -106,7 +106,7 @@ services:
     volumes:
       - ./agent_server:/app
       - ./configs:/configs:ro
-      - ./:/workspace:ro
+      - ./:/workspace
 
 volumes:
   ollama_data:

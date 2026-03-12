@@ -7,15 +7,16 @@ This repo now targets a workstation-hosted Docker stack that serves local models
 ## Core idea
 
 - Workstation runs:
+  - Ollama
   - Open WebUI
-  - vLLM
   - Qdrant
   - Redis
   - Postgres
   - Agent API
+  - optional `vllm` profile
 - Workstation local model runtime:
-  - host-native Ollama by default
-  - optional containerized Ollama when you explicitly enable it
+  - containerized Ollama by default
+  - optional `vllm` profile when the GPU/runtime combination is ready
 - Laptop uses:
   - VS Code or devcontainer
   - browser
@@ -67,9 +68,7 @@ cp .env.example .env
 ./scripts/start-workstation.sh
 ```
 
-The repo pins `VLLM_IMAGE` to `vllm/vllm-openai:v0.10.2` by default instead of `latest` so the stack does not unexpectedly jump to a newer CUDA requirement.
-
-If your workstation already has native Ollama listening on `127.0.0.1:11434`, that is the default Ollama path for this repo. The Compose Ollama service is optional and is not started unless you explicitly enable its profile.
+The repo pins `VLLM_IMAGE` to `vllm/vllm-openai:v0.10.2`, but `vllm` is now opt-in behind the `vllm` Compose profile instead of part of the default workstation path.
 
 5. On the laptop, join the same tailnet:
 
@@ -97,17 +96,23 @@ Implemented now:
 - `POST /tasks/{task_id}/advance`
 - `POST /tasks/{task_id}/draft-plan`
 - `GET /tasks/{task_id}/briefs`
+- `POST /tasks/{task_id}/runs`
+- `GET /tasks/{task_id}/runs`
+- `GET /runs/{run_id}`
 - initial planner-based task decomposition
 - YAML-backed routing policy loading
 - project-aware local planning against repos mounted into the agent API container
+- durable task and run storage in Postgres
+- LangGraph-backed local execution loop for planner -> coder -> build
+- writable workspace mounts so runs can edit repos and execute commands
 - internal Redis dependency without host port exposure
 
 Documented for later, not implemented yet:
 
-- LangGraph orchestration
-- durable run storage
-- tool sandboxing
+- premium-model execution inside the orchestrated run loop
+- retrieval-backed memory workflows
 - live progress streaming
+- stronger sandboxing and approval controls for repo execution
 
 ## Dummy project workflow
 
@@ -148,18 +153,12 @@ If your workstation still needs something older or newer:
 
 ## Ollama note
 
-This repo now assumes a workstation-native Ollama when one is already present.
+This repo now uses containerized Ollama as the default local inference path.
 
-To use the optional containerized Ollama instead:
-
-```bash
-docker compose --profile ollama-container up -d ollama
-```
-
-and set:
+To start the optional `vllm` profile as an additional backend:
 
 ```bash
-OLLAMA_BASE_URL=http://ollama:11434
+docker compose --profile vllm up -d vllm
 ```
 
 ## Security notes

@@ -48,6 +48,7 @@ def plan_to_record(task_id: str, task: TaskRequest) -> TaskRecord:
         notes=plan["notes"],
         metadata={
             "premium_selected": plan["premium"],
+            "project_path": task.project_path,
             "routing_summary": plan["routing_summary"],
         },
     )

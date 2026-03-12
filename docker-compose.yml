@@ -100,11 +100,13 @@ services:
     environment:
       AGENT_ROUTING_CONFIG: ${AGENT_ROUTING_CONFIG}
       AGENT_MODELS_CONFIG: ${AGENT_MODELS_CONFIG}
+      AGENT_WORKSPACE_ROOT: /workspace
     ports:
       - "2024:2024"
     volumes:
       - ./agent_server:/app
       - ./configs:/configs:ro
+      - ./:/workspace:ro
 
 volumes:
   ollama_data:

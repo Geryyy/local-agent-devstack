@@ -95,8 +95,11 @@ Implemented now:
 - `GET /tasks`
 - `GET /tasks/{task_id}`
 - `POST /tasks/{task_id}/advance`
+- `POST /tasks/{task_id}/draft-plan`
+- `GET /tasks/{task_id}/briefs`
 - initial planner-based task decomposition
 - YAML-backed routing policy loading
+- project-aware local planning against repos mounted into the agent API container
 - internal Redis dependency without host port exposure
 
 Documented for later, not implemented yet:
@@ -105,6 +108,34 @@ Documented for later, not implemented yet:
 - durable run storage
 - tool sandboxing
 - live progress streaming
+
+## Dummy project workflow
+
+Create a task against a repo mounted under `/workspace` in the agent API container, then ask the planner for a local draft and fetch role briefs you can paste into WebUI or editor agents.
+
+```bash
+curl -X POST http://localhost:2024/tasks \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "title": "Add done command and tests",
+    "description": "Extend the dummy todo CLI with a done command, file-backed tests, and slightly better help text.",
+    "project_path": "playground/dummy-agent-app",
+    "constraints": ["stdlib only", "keep changes small"],
+    "acceptance_criteria": [
+      "done command marks an item complete",
+      "tests cover add list done",
+      "README mentions how to run the CLI"
+    ],
+    "premium_allowed": false
+  }'
+```
+
+Then:
+
+```bash
+curl -X POST http://localhost:2024/tasks/<task_id>/draft-plan
+curl http://localhost:2024/tasks/<task_id>/briefs
+```
 
 ## vLLM compatibility note
 

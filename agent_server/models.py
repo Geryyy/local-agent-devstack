@@ -21,6 +21,7 @@ class TaskPhase(str, Enum):
 class TaskRequest(BaseModel):
     title: str
     description: str
+    project_path: Optional[str] = None
     scope: Optional[List[str]] = None
     constraints: List[str] = Field(default_factory=list)
     acceptance_criteria: List[str] = Field(default_factory=list)

@@ -20,7 +20,9 @@
 - verify planner-driven initial decomposition
 - verify phase progression through the task lifecycle endpoints
 - verify durable task and run storage
+- verify project memory indexing and retrieval through Qdrant
 - verify automated runs can edit a repo and execute verification commands
+- verify run streaming with `/runs/{run_id}/stream`
 
 ## Stage 4 - Project integration
 
@@ -31,7 +33,7 @@
 
 ## Stage 5 - Later expansion
 
-- add richer retrieval and memory workflows
 - add orchestration tracing
-- add streaming progress and richer operator dashboards
+- add richer operator dashboards and run artifacts
 - add stronger execution sandboxing and approval controls
+- add more polished premium approval and escalation policy controls

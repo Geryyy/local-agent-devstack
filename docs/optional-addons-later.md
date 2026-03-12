@@ -12,8 +12,6 @@ Add the items below only when the baseline is working well in daily use.
 
 ## Orchestration and observability
 
-- LangGraph
-  Add when you want stateful orchestration beyond the starter planner flow.
 - Langfuse
   Add when you need tracing, evals, and prompt observability.
 - Prometheus and Grafana
@@ -21,10 +19,10 @@ Add the items below only when the baseline is working well in daily use.
 
 ## Agent and workflow tools
 
-- OpenHands
-  Add when you want to experiment with a more execution-heavy coding agent.
 - LiteLLM
   Add when one unified gateway in front of local and premium providers becomes useful.
+- OpenHands
+  Add when you want to experiment with a more execution-heavy coding agent.
 - n8n
   Add only when you have repeatable multi-step automation worth formalizing.
 

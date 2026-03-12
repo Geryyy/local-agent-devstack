@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -23,6 +23,7 @@ class TaskRequest(BaseModel):
     description: str
     project_path: Optional[str] = None
     scope: Optional[List[str]] = None
+    task_type: str = "routine_coding"
     constraints: List[str] = Field(default_factory=list)
     acceptance_criteria: List[str] = Field(default_factory=list)
     premium_allowed: bool = False
@@ -42,6 +43,7 @@ class TaskRecord(BaseModel):
 
 class RunRequest(BaseModel):
     commands_override: List[str] = Field(default_factory=list)
+    mode: Literal["patch_only", "patch_and_run"] = "patch_and_run"
 
 
 class RunRecord(BaseModel):

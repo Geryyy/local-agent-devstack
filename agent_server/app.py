@@ -13,6 +13,7 @@ from db import get_run as db_get_run
 from db import get_task as db_get_task
 from db import init_db, list_runs as db_list_runs, list_tasks as db_list_tasks, save_task
 from llm_client import generate_role_text
+from memory import index_project_memory, search_project_memory
 from models import RunRecord, RunRequest, TaskRecord, TaskRequest, TaskPhase
 from planner_agent import plan_to_record
 from research_agent import describe_research_agent
@@ -42,7 +43,7 @@ def agents() -> dict:
             describe_code_agent(),
             describe_research_agent(),
             describe_build_agent(),
-            {"name": "memory_agent", "purpose": "Reserved for future retrieval and durable summaries."},
+            {"name": "memory_agent", "purpose": "Indexes and retrieves project snippets for planner and coder context."},
         ]
     }
 
@@ -53,6 +54,7 @@ def create_task(task: TaskRequest) -> TaskRecord:
     record = plan_to_record(task_id, task)
     record.metadata["constraints"] = task.constraints
     record.metadata["acceptance_criteria"] = task.acceptance_criteria
+    record.metadata["task_type"] = task.task_type
     save_task(task_id, record.model_dump(mode="json"))
     return record
 
@@ -113,6 +115,19 @@ async def draft_plan(task_id: str) -> dict:
         "project_summary": project_summary,
         "planner_output": generated,
     }
+
+
+@app.get("/tasks/{task_id}/memory")
+async def task_memory(task_id: str) -> dict:
+    record = get_task(task_id)
+    project_path = record.metadata.get("project_path")
+    project_root = resolve_project_path(project_path)
+    if project_root is None:
+        raise HTTPException(status_code=400, detail="Task has no project_path")
+
+    await index_project_memory(project_root)
+    results = await search_project_memory(project_root, f"{record.title}\n{record.description}")
+    return {"task_id": task_id, "memory_hits": results}
 
 
 @app.get("/tasks/{task_id}/briefs")
@@ -192,7 +207,8 @@ async def create_run(task_id: str, run_request: RunRequest) -> RunRecord:
     record = get_task(task_id)
     if run_request.commands_override:
         record.metadata["commands_override"] = run_request.commands_override
-        save_task(task_id, record.model_dump(mode="json"))
+    record.metadata["run_mode"] = run_request.mode
+    save_task(task_id, record.model_dump(mode="json"))
 
     result = await execute_task_run(record)
     return RunRecord(

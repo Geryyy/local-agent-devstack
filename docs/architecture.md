@@ -75,6 +75,6 @@ Implemented now:
 
 Planned later:
 
-- retrieval-backed memory workflows
-- streaming progress and richer operator dashboards
+- orchestration tracing and richer operator dashboards
 - stronger execution sandboxing and approval controls
+- more polished premium approval and escalation policy controls

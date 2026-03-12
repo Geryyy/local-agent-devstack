@@ -43,4 +43,4 @@ Use the Agent API for:
 
 ## Current boundary
 
-This repo now supports a practical local-first execution loop, but it is still an early backend rather than a fully polished orchestration platform. It can persist tasks and runs, generate project-aware plans, edit files in mounted repos, and run verification commands. Streaming UX, richer retrieval, and stricter execution controls are still future work.
+This repo now supports a practical local-first execution loop, but it is still an early backend rather than a fully polished orchestration platform. It can persist tasks and runs, generate project-aware plans, index and retrieve project memory, edit files in mounted repos, and run verification commands. A basic stream endpoint exists, but richer dashboards, stronger approval controls, and deeper tracing are still future work.

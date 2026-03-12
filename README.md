@@ -2,7 +2,7 @@
 
 Local-first, multi-agent development stack for a workstation + client laptop setup.
 
-This repo now targets a workstation-hosted Docker stack that serves local models, operator UI, retrieval, and a starter agent API. The laptop stays the coding surface and reaches the workstation primarily over Tailscale.
+This repo now targets a workstation-hosted Docker stack that serves local models, operator UI, retrieval, and a usable agent execution API. The laptop stays the coding surface and reaches the workstation primarily over Tailscale.
 
 ## Core idea
 
@@ -82,9 +82,9 @@ The repo pins `VLLM_IMAGE` to `vllm/vllm-openai:v0.10.2`, but `vllm` is now opt-
 http://workstation:3000
 ```
 
-## Agent API starter scope
+## Agent API scope
 
-This repo ships a runnable FastAPI starter scaffold, not a full orchestration platform yet.
+This repo ships a runnable FastAPI backend for local-first planning and execution. It is useful today, but still intentionally lighter than a full production orchestration platform.
 
 Implemented now:
 
@@ -99,20 +99,25 @@ Implemented now:
 - `POST /tasks/{task_id}/runs`
 - `GET /tasks/{task_id}/runs`
 - `GET /runs/{run_id}`
+- `GET /runs/{run_id}/stream`
+- `GET /tasks/{task_id}/memory`
 - initial planner-based task decomposition
 - YAML-backed routing policy loading
 - project-aware local planning against repos mounted into the agent API container
 - durable task and run storage in Postgres
 - LangGraph-backed local execution loop for planner -> coder -> build
+- Qdrant-backed project memory indexing and retrieval for planner/coder prompts
 - writable workspace mounts so runs can edit repos and execute commands
+- run modes for `patch_only` and `patch_and_run`
+- basic server-sent event streaming for run state
+- premium-capable model routing with OpenAI or Anthropic fallbacks when a task is marked premium-eligible and retries cross the local threshold
 - internal Redis dependency without host port exposure
 
 Documented for later, not implemented yet:
 
-- premium-model execution inside the orchestrated run loop
-- retrieval-backed memory workflows
-- live progress streaming
 - stronger sandboxing and approval controls for repo execution
+- richer run artifacts, dashboards, and tracing
+- more polished premium approval UX and policy controls
 
 ## Dummy project workflow
 
@@ -139,7 +144,29 @@ Then:
 
 ```bash
 curl -X POST http://localhost:2024/tasks/<task_id>/draft-plan
+curl http://localhost:2024/tasks/<task_id>/memory
 curl http://localhost:2024/tasks/<task_id>/briefs
+```
+
+To run the automated local workflow:
+
+```bash
+curl -X POST http://localhost:2024/tasks/<task_id>/runs \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "mode": "patch_and_run"
+  }'
+```
+
+Supported run modes:
+
+- `patch_only` writes files but skips verification commands
+- `patch_and_run` writes files and executes the generated or overridden verification commands
+
+To watch a run:
+
+```bash
+curl http://localhost:2024/runs/<run_id>/stream
 ```
 
 ## vLLM compatibility note

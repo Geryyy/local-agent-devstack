@@ -191,11 +191,25 @@ docker compose --profile vllm up -d vllm
 For an optional heavier Ollama coder model on this workstation:
 
 ```bash
+./scripts/pull-ollama-model.sh OLLAMA_MID_MODEL
 ./scripts/pull-ollama-model.sh OLLAMA_HEAVY_MODEL
+ollama run deepcoder:14b "Reply with exactly: benchmark smoke ok"
 ollama run qwen3-coder:30b "Reply with exactly: heavy coder ready"
 ```
 
 `qwen3-coder:30b` works locally on the tested 16 GB RTX 5070 Ti, but it used about 15.6 GiB VRAM for a tiny prompt. Treat it as a manual or single-run heavy coder, not the default multi-agent model.
+
+To compare local coder options on your workstation:
+
+```bash
+python3 ./scripts/benchmark-local-models.py
+```
+
+Current workstation takeaway:
+
+- `qwen2.5-coder:7b` remains the safest default for multi-agent orchestration
+- `deepcoder:14b` fits better than the 30B model, but needs extra prompt or template control before it is a reliable strict-JSON worker
+- `qwen3-coder:30b` works as a manual heavy coder, but leaves very little VRAM headroom
 
 ## Security notes
 
@@ -219,5 +233,6 @@ ollama run qwen3-coder:30b "Reply with exactly: heavy coder ready"
 - [Architecture](/home/geraldebmer/repos/local-agent-devstack/docs/architecture.md)
 - [Networking](/home/geraldebmer/repos/local-agent-devstack/docs/networking.md)
 - [Model Routing](/home/geraldebmer/repos/local-agent-devstack/docs/model-routing.md)
+- [Local Model Benchmarks](/home/geraldebmer/repos/local-agent-devstack/docs/local-model-benchmarks.md)
 - [Agent Roles](/home/geraldebmer/repos/local-agent-devstack/docs/agent-roles.md)
 - [Security](/home/geraldebmer/repos/local-agent-devstack/docs/security.md)

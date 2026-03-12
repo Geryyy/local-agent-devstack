@@ -1,17 +1,28 @@
-# Security notes
+# Security
 
 ## Default posture
+
 - local-first
-- tunnelled access
-- no public model endpoint exposure
-- no secrets committed to git
+- workstation-hosted services
+- premium credentials stored on the workstation only
+- Tailscale-first private access
+- no public exposure of service ports
 
 ## Practical recommendations
-- use SSH keys for laptop -> workstation
-- do not run Ollama on `0.0.0.0` unless you really need it
-- prefer direct Ethernet or VPN + SSH
-- keep model-serving credentials and cloud API keys in shell env or a secret store
-- use closed models only when the task justifies it
+
+- use Tailscale as the normal access layer between laptop and workstation
+- keep SSH available as an administrative and fallback access path
+- do not publish Open WebUI, Agent API, Ollama, or vLLM to the public internet
+- use placeholders in docs and examples instead of real hostnames, users, or tokens
+- keep `.env` out of git
 
 ## Data handling
-By default, private code and documents should stay local. Closed-model tools are opt-in and should be used intentionally.
+
+Private code and documents should stay on local machines by default.
+
+Closed-model access is optional escalation. When you use premium APIs:
+
+- do it intentionally
+- keep keys only on the workstation
+- use routing policy to limit when escalation is allowed
+- preserve task metadata that shows whether premium escalation was selected

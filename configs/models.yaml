@@ -1,0 +1,27 @@
+local_models:
+  ollama_fast:
+    provider: ollama
+    base_url: http://ollama:11434
+    model: qwen2.5-coder:7b
+  ollama_coder:
+    provider: ollama
+    base_url: http://ollama:11434
+    model: qwen2.5-coder:7b
+  ollama_build:
+    provider: ollama
+    base_url: http://ollama:11434
+    model: qwen2.5-coder:7b
+
+premium_models:
+  gpt_5_4:
+    provider: openai
+    env_key: OPENAI_API_KEY
+    model: gpt-5.4
+  claude_sonnet:
+    provider: anthropic
+    env_key: ANTHROPIC_API_KEY
+    model: claude-sonnet
+  claude_opus:
+    provider: anthropic
+    env_key: ANTHROPIC_API_KEY
+    model: claude-opus

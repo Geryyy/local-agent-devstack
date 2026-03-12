@@ -1,121 +1,157 @@
 # local-agent-devstack
 
-Local-first, hybrid AI agent development environment for a split setup:
+Local-first, multi-agent development stack for a workstation + client laptop setup.
 
-- **Workstation** = local inference server
-- **Laptop** = coding machine with VS Code, devcontainers, ROS 2 workspaces, VPN access
+This repo now targets a workstation-hosted Docker stack that serves local models, operator UI, retrieval, and a starter agent API. The laptop stays the coding surface and reaches the workstation primarily over Tailscale.
 
-This repo is designed around a workflow where the laptop does the coding and container work, while the workstation hosts the local models. The default path is:
+## Core idea
 
-`devcontainer -> laptop host -> SSH tunnel -> workstation Ollama`
+- Workstation runs:
+  - Open WebUI
+  - vLLM
+  - Qdrant
+  - Redis
+  - Postgres
+  - Agent API
+- Workstation local model runtime:
+  - host-native Ollama by default
+  - optional containerized Ollama when you explicitly enable it
+- Laptop uses:
+  - VS Code or devcontainer
+  - browser
+  - terminal
+  - Tailscale to reach workstation services securely
 
-Phase 1 focuses on the workstation only: get local inference reliable first, then wire the laptop and devcontainer path in Phase 2.
-Closed models are optional fallbacks for the cases where local reasoning is not enough.
+Default access pattern:
 
-## Goals
+`laptop -> Tailscale -> workstation services`
 
-- keep private code and documents local by default
-- remove provider-side usage caps for most daily work
-- keep latency low when laptop and workstation are near each other
-- allow premium escalation to Codex / OpenAI only when needed
-- make the setup reproducible across multiple repos
+SSH tunneling remains available as a fallback, but it is no longer the primary architecture.
 
-## Suggested topology
+## Main URLs
 
-### Preferred path at the desk
-Use a **direct Ethernet link** between laptop and workstation and keep the laptop's Wi-Fi/VPN unchanged for internet and remote access.
+After startup, the typical workstation endpoints are:
 
-### Alternative path
-Use a VPN between the laptop and workstation and run the exact same SSH tunnel flow.
+- Open WebUI: `http://workstation:3000`
+- Agent API: `http://workstation:2024`
+- vLLM: `http://workstation:8001/v1`
+- Ollama: `http://workstation:11434`
+- Qdrant: `http://workstation:6333`
 
-## Recommended model policy
-
-Primary local models on the workstation for a stronger agent-friendly default:
-
-- `gpt-oss:20b` for agent-style coding, repo understanding, and general reasoning
-- `qwen2.5-coder:7b` as a smaller fallback when you want lower latency
-- use separate Continue roles if you later want to split code and reasoning back out
-
-Optional larger-model experimentation:
-
-- `qwen3-coder:30b` only if you deliberately opt in and accept higher VRAM use
-
-Closed-model escalation on the laptop:
-
-- **Codex / OpenAI** for hard implementation and premium reasoning when the local path is not enough
-
-## Repo layout
-
-- `workstation/` setup docs and scripts
-- `client/` laptop setup docs and scripts
-- `configs/` starter configs for Continue, Codex, devcontainer integration
-- `templates/` drop-in files for your project repos
-- `docs/` architecture, rollout, network, and security notes
+Replace `workstation` with your Tailscale hostname or Tailscale IP if MagicDNS is not enabled.
 
 ## Quick start
 
-### Phase 1: On the workstation
+1. Copy the environment file:
+
 ```bash
 cp .env.example .env
-cd workstation/scripts
-./install_ollama.sh
-./pull_models.sh
-./verify_workstation.sh
 ```
 
-If you do not need custom values yet, you can skip creating `.env`.
+2. Edit `.env` and set:
+   - `POSTGRES_PASSWORD`
+   - `OPENAI_API_KEY` if you want OpenAI escalation
+   - `ANTHROPIC_API_KEY` if you want Anthropic escalation
+   - `HUGGING_FACE_HUB_TOKEN` if your vLLM model pull needs it
+   - `WORKSTATION_HOSTNAME` to your real Tailscale host name
 
-### Phase 2: On the laptop
-```bash
-cp .env.example .env
-cd client/scripts
-./install_client_tools.sh
-./setup_ssh_tunnel.sh
-./verify_client_path.sh
-```
-
-If the devcontainer needs to reach the laptop tunnel through `host.docker.internal` on Linux, set `LOCAL_OLLAMA_BIND_HOST` before opening the tunnel and then restart it.
-
-### 3) Continue config choice
-If Continue runs on the laptop host, use `configs/continue/config.yaml`, which assumes the SSH tunnel is reachable on localhost and points at:
+3. On the workstation, join Tailscale:
 
 ```bash
-http://127.0.0.1:11434
+./scripts/start-tailscale-workstation.sh
 ```
 
-That file matches the default host-only tunnel bind:
+4. Start the workstation stack:
 
 ```bash
-LOCAL_OLLAMA_BIND_HOST=127.0.0.1
+./scripts/start-workstation.sh
 ```
 
-It also usually works if the tunnel is opened on all interfaces:
+The repo pins `VLLM_IMAGE` to `vllm/vllm-openai:v0.10.2` by default instead of `latest` so the stack does not unexpectedly jump to a newer CUDA requirement.
+
+If your workstation already has native Ollama listening on `127.0.0.1:11434`, that is the default Ollama path for this repo. The Compose Ollama service is optional and is not started unless you explicitly enable its profile.
+
+5. On the laptop, join the same tailnet:
 
 ```bash
-LOCAL_OLLAMA_BIND_HOST=0.0.0.0
+./scripts/start-tailscale-client.sh
 ```
 
-If you bind the tunnel to a specific Linux bridge address such as `172.17.0.1`, update the live Continue config to use that address instead of `127.0.0.1`.
+6. Open the operator UI from the laptop:
 
-If Continue runs inside a devcontainer, use `configs/continue/devcontainer.config.yaml`.
+```text
+http://workstation:3000
+```
 
-### 4) In the devcontainer
-Add the host mapping from `configs/devcontainer/devcontainer.example.json` and verify:
+## Agent API starter scope
+
+This repo ships a runnable FastAPI starter scaffold, not a full orchestration platform yet.
+
+Implemented now:
+
+- `GET /health`
+- `GET /agents`
+- `POST /tasks`
+- `GET /tasks`
+- `GET /tasks/{task_id}`
+- `POST /tasks/{task_id}/advance`
+- initial planner-based task decomposition
+- YAML-backed routing policy loading
+- internal Redis dependency without host port exposure
+
+Documented for later, not implemented yet:
+
+- LangGraph orchestration
+- durable run storage
+- tool sandboxing
+- live progress streaming
+
+## vLLM compatibility note
+
+`vllm/vllm-openai:latest` can move to a newer CUDA runtime than your workstation driver supports. This repo now pins `VLLM_IMAGE` to `vllm/vllm-openai:v0.10.2` by default to avoid that drift.
+
+If your workstation still needs something older or newer:
+
+- set `VLLM_IMAGE` in `.env` to a compatible official image tag
+- or update the NVIDIA driver and intentionally move forward
+
+## Ollama note
+
+This repo now assumes a workstation-native Ollama when one is already present.
+
+To use the optional containerized Ollama instead:
 
 ```bash
-curl http://host.docker.internal:11434/api/tags
+docker compose --profile ollama-container up -d ollama
 ```
 
-If you want to run the repo verification script from inside the devcontainer, use:
+and set:
 
 ```bash
-./client/scripts/verify_client_path.sh http://host.docker.internal:11434
+OLLAMA_BASE_URL=http://ollama:11434
 ```
 
-## Important notes
+## Security notes
 
-- Do **not** expose Ollama directly on a public interface.
-- Prefer SSH tunneling over direct port exposure.
-- Run Ollama on the **workstation host**, not inside each devcontainer.
-- Treat closed models as an explicit escalation path, not the default.
-- Phase 1 is complete when the workstation can serve and verify local models without any laptop dependency.
+- Keep premium API keys on the workstation only.
+- Do not expose workstation ports to the public internet.
+- Tailscale is the default private access layer.
+- SSH tunneling is an acceptable fallback when direct Tailscale access is not desirable.
+
+## Repo layout
+
+- `agent_server/` FastAPI starter scaffold
+- `configs/` model catalog and routing policy
+- `docs/` architecture, networking, security, routing, and rollout notes
+- `scripts/` workstation startup and Tailscale helpers
+- `docker-compose.yml` primary workstation deployment interface
+- `client/` legacy SSH-tunnel compatibility notes
+- `workstation/` legacy native-Ollama compatibility notes
+
+## Key docs
+
+- [Architecture](/home/geraldebmer/repos/local-agent-devstack/docs/architecture.md)
+- [Networking](/home/geraldebmer/repos/local-agent-devstack/docs/networking.md)
+- [Model Routing](/home/geraldebmer/repos/local-agent-devstack/docs/model-routing.md)
+- [Agent Roles](/home/geraldebmer/repos/local-agent-devstack/docs/agent-roles.md)
+- [Security](/home/geraldebmer/repos/local-agent-devstack/docs/security.md)

@@ -1,0 +1,43 @@
+planner:
+  primary_model: ollama_fast
+  fallback_models:
+    - gpt_5_4
+    - claude_opus
+
+code_agent:
+  primary_model: ollama_coder
+  fallback_models:
+    - claude_sonnet
+    - ollama_fast
+
+research_agent:
+  primary_model: ollama_fast
+  fallback_models:
+    - gpt_5_4
+    - claude_opus
+
+build_agent:
+  primary_model: ollama_build
+  fallback_models:
+    - ollama_coder
+
+policy:
+  local_first: true
+  enable_premium_escalation: true
+  max_local_retries_before_escalation: 2
+  max_premium_calls_per_run: 3
+  require_human_approval_for_final_review: false
+
+task_types:
+  local_only:
+    - routine_coding
+    - docs
+    - summaries
+    - config_generation
+    - log_summarization
+  premium_allowed:
+    - architecture
+    - hard_debugging
+    - math_reasoning
+    - final_review
+    - cross_repo_planning

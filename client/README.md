@@ -1,83 +1,10 @@
-# Client setup
+# Client notes
 
-This machine is the laptop where you actually code.
-It is part of Phase 2. Phase 1 ends once the workstation-hosted Ollama service is validated locally.
+The laptop is now expected to reach the workstation stack directly over Tailscale.
 
-## Responsibilities
+Use:
 
-- VS Code
-- devcontainers
-- ROS 2 workspace
-- Continue configuration
-- Codex installation for optional premium escalation
-- SSH tunnel to the workstation
+- [scripts/start-tailscale-client.sh](/home/geraldebmer/repos/local-agent-devstack/scripts/start-tailscale-client.sh) to join the tailnet
+- [scripts/start-client-tunnel.sh](/home/geraldebmer/repos/local-agent-devstack/scripts/start-client-tunnel.sh) only if you want an SSH fallback
 
-## Flow
-
-The laptop should treat the workstation's Ollama as if it were local by forwarding:
-
-`localhost:11434 -> workstation:localhost:11434`
-
-Then the devcontainer reaches the laptop host via `host.docker.internal`.
-On Linux bridge-network devcontainers, that only works if the SSH tunnel is not bound to host loopback only.
-
-## Phase 2 steps
-
-1. copy `.env.example` to `.env` in this repo and set `WORKSTATION_USER` and `WORKSTATION_HOST`
-2. install baseline client tools:
-   `./client/scripts/install_client_tools.sh`
-3. open the SSH tunnel:
-   `./client/scripts/setup_ssh_tunnel.sh`
-4. verify the laptop-local path:
-   `./client/scripts/verify_client_path.sh`
-5. for Continue running on the laptop host, use `configs/continue/config.yaml`
-6. if you also use a devcontainer, add the `host.docker.internal` mapping from `configs/devcontainer/devcontainer.example.json` and use `configs/continue/devcontainer.config.yaml` there
-
-If you run the verification script from inside the devcontainer, pass the laptop-host endpoint explicitly:
-
-- `./client/scripts/verify_client_path.sh http://host.docker.internal:11434`
-
-Using `LOCAL_OLLAMA_BIND_HOST=host.docker.internal` also works for that check, but it repurposes the tunnel bind variable and is not the intended setup knob.
-
-## Continue endpoint choice
-
-Use the endpoint that matches where Continue is running:
-
-- laptop host / VS Code on the client machine:
-  `http://127.0.0.1:11434` when the tunnel is bound to localhost
-- inside a devcontainer with the Docker host mapping added:
-  `http://host.docker.internal:11434`
-
-If your laptop tunnel is bound to a specific bridge address like `172.17.0.1`, host-side Continue must use that exact address instead of `127.0.0.1`.
-
-If Continue is running on the laptop host and you point it at `host.docker.internal`, Linux commonly returns:
-`getaddrinfo ENOTFOUND host.docker.internal`
-
-## Devcontainer note for Linux
-
-The default tunnel bind address is `127.0.0.1`, which is the safer host-only setting.
-That is enough for laptop-local tools, but a bridge-network devcontainer usually cannot reach it through `host.docker.internal`.
-
-If the devcontainer must call the tunnel directly, set `LOCAL_OLLAMA_BIND_HOST` before opening the tunnel:
-
-- preferred when you know the Docker bridge IP:
-  `LOCAL_OLLAMA_BIND_HOST=172.17.0.1`
-- broader exposure, simpler setup:
-  `LOCAL_OLLAMA_BIND_HOST=0.0.0.0`
-
-Then restart the tunnel and rerun `./client/scripts/verify_client_path.sh`.
-
-## Optional systemd tunnel
-
-If you want the tunnel to persist across logins:
-
-1. create `~/.config/local-agent-devstack/client.env`
-2. add:
-   `WORKSTATION_USER=youruser`
-   `WORKSTATION_HOST=workstation.local`
-   `LOCAL_OLLAMA_PORT=11434`
-   `LOCAL_OLLAMA_BIND_HOST=127.0.0.1`
-   `OLLAMA_PORT=11434`
-3. install the unit from `client/systemd/ollama-tunnel.service`
-4. enable it with:
-   `systemctl --user enable --now ollama-tunnel.service`
+The old client-side tunnel bootstrap scripts were removed as part of the Tailscale-first migration.

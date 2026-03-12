@@ -1,35 +1,79 @@
 # Architecture
 
-## Machines
+This repo defines a local-first multi-agent development stack built around a GPU workstation and a client laptop.
+
+## Machine roles
 
 ### Workstation
+
+Runs the full AI stack:
+
+- Open WebUI
+- vLLM
+- Qdrant
+- Redis
+- Postgres
+- Agent API
+- workstation-native Ollama by default
+
 Responsibilities:
 
-- runs Ollama
-- stores local models
-- provides GPU-backed local inference
-- never becomes the primary coding environment
+- host local inference and supporting services
+- keep premium credentials local to the workstation
+- provide the operator UI and API endpoints
+- remain the main runtime for future orchestration
 
 ### Laptop
+
+Used for:
+
+- VS Code and devcontainers
+- browser access to Open WebUI
+- terminal access to the Agent API
+- day-to-day coding against workstation-hosted services
+
 Responsibilities:
 
-- runs VS Code
-- hosts the ROS 2 devcontainer
-- has access to required VPNs
-- runs Codex / Continue client tooling
-- forwards requests to workstation-hosted Ollama through an SSH tunnel
+- stay the primary coding machine
+- reach workstation services over Tailscale by default
+- use SSH tunnels only as a compatibility fallback
 
-## Data path
+## Service layout
 
-Preferred path:
+Typical workstation ports:
 
-`devcontainer -> host.docker.internal -> laptop host localhost:11434 -> SSH tunnel -> workstation localhost:11434`
+- Open WebUI on `3000`
+- Agent API on `2024`
+- vLLM on `8001`
+- Ollama on `11434`
+- Qdrant on `6333`
+- Postgres on `5432`
 
-This keeps the model endpoint local from the perspective of the devcontainer, while the actual inference happens on the workstation.
+Redis is part of the internal stack and does not need a host-published port for the current starter stage.
 
-## Why this design
+## Operator flow
 
-- the workstation is stronger and should do inference
-- the laptop is where your real workflows already happen
-- SSH tunneling is simpler and safer than exposing ports over LAN/VPN
-- host-level Ollama avoids duplicate model storage in containers
+The intended flow is:
+
+`laptop browser or editor -> Tailscale -> workstation services`
+
+Open WebUI is the primary human-facing interface. The Agent API is the starter execution surface for structured task handling and future orchestration work.
+
+## Current implementation level
+
+Implemented now:
+
+- Docker Compose workstation stack
+- Tailscale-first networking guidance
+- YAML-backed model routing config
+- starter FastAPI agent service
+- Open WebUI can start without a live vLLM container, which helps on workstations where vLLM image/runtime compatibility is still being tuned
+- Open WebUI can target a host-native Ollama, which avoids port conflicts on workstations that already run Ollama outside Docker
+- vLLM is intentionally pinned to a specific image tag in `.env` rather than `latest` so the default stack is more stable on workstation GPUs
+
+Planned later:
+
+- LangGraph or equivalent orchestration
+- durable run state
+- retrieval-backed memory workflows
+- streaming progress and richer operator dashboards

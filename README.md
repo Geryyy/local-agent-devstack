@@ -296,6 +296,13 @@ LangGraph Studio is the preferred UI for:
 
 The lightweight Agent Ops UI remains available as a practical fallback for repo-local task ops, but Studio is now the first-class orchestration surface.
 
+For the fastest local workflow, use the fallback Agent Ops UI at `http://localhost:2024/ops`. It now supports:
+
+- direct task creation from a compact form
+- pasting a full task JSON payload
+- importing a `.json` task file such as [playground/example-task.json](/home/geraldebmer/repos/local-agent-devstack/playground/example-task.json)
+- one-click `Create And Run` for `patch_and_run`
+
 ## vLLM compatibility note
 
 `vllm/vllm-openai:latest` can move to a newer CUDA runtime than your workstation driver supports. This repo now pins `VLLM_IMAGE` to `vllm/vllm-openai:v0.10.2` by default to avoid that drift.

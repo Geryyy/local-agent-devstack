@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import re
 import uuid
@@ -250,10 +251,11 @@ async def execute_task_run(task: TaskRecord) -> Dict[str, Any]:
     target = resolve_target(task.metadata)
 
     run_id = str(uuid.uuid4())
+    project_summary = await asyncio.to_thread(summarize_target, target)
     initial_state: RunState = {
         "run_id": run_id,
         "task": task.model_dump(mode="json"),
-        "project_summary": summarize_target(target),
+        "project_summary": project_summary,
         "retry_count": 0,
         "premium_calls_used": task.premium_calls_used,
         "memory_hits": [],

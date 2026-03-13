@@ -1,0 +1,16 @@
+{
+  "title": "Build tiny-notes-cli",
+  "description": "Create a tiny Python CLI notes app with add, list, and delete commands, JSON storage, unittest tests, and a short README.",
+  "project_path": "playground/dummy-agent-app",
+  "execution_target": "local",
+  "task_type": "routine_coding",
+  "constraints": [
+    "stdlib only",
+    "keep changes small"
+  ],
+  "acceptance_criteria": [
+    "python3 -m unittest -v passes",
+    "README explains usage"
+  ],
+  "premium_allowed": false
+}

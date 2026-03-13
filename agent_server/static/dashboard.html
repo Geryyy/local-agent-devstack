@@ -57,6 +57,7 @@
     textarea { min-height: 82px; resize: vertical; }
     .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .actions, .inline-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .stack { display: grid; gap: 10px; }
     button {
       border: 0;
       border-radius: 999px;
@@ -100,6 +101,24 @@
     .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
     .mono { font-family: "IBM Plex Mono", monospace; font-size: 0.9rem; }
     .hidden { display: none; }
+    .status {
+      min-height: 1.4rem;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+    .tab-strip {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .tab-strip button {
+      background: #e9dfd3;
+      color: var(--ink);
+    }
+    .tab-strip button.active {
+      background: var(--accent);
+      color: white;
+    }
     @media (max-width: 1100px) {
       .shell { grid-template-columns: 1fr; }
       .detail-grid { grid-template-columns: 1fr; }
@@ -113,56 +132,78 @@
       <p class="small">Create tasks, point them at local or client-hosted projects, and watch runs without juggling raw curl calls.</p>
 
       <h2>New Task</h2>
-      <label>Title</label>
-      <input id="title" placeholder="Build tiny-notes-cli">
-
-      <label>Description</label>
-      <textarea id="description" placeholder="Explain the project and success criteria."></textarea>
-
-      <div class="row">
-        <div>
-          <label>Execution Target</label>
-          <select id="executionTarget">
-            <option value="local">Local on workstation</option>
-            <option value="ssh">SSH to client project</option>
-          </select>
-        </div>
-        <div>
-          <label>Task Type</label>
-          <input id="taskType" value="routine_coding">
-        </div>
+      <div class="tab-strip">
+        <button id="formTab" class="active" type="button">Form</button>
+        <button id="jsonTab" type="button">JSON</button>
       </div>
 
-      <label>Project Path</label>
-      <input id="projectPath" placeholder="playground/dummy-agent-app or /home/you/project">
+      <div id="formPanel">
+        <label>Title</label>
+        <input id="title" placeholder="Build tiny-notes-cli">
 
-      <div id="sshFields" class="hidden">
+        <label>Description</label>
+        <textarea id="description" placeholder="Explain the project and success criteria."></textarea>
+
         <div class="row">
           <div>
-            <label>SSH Host</label>
-            <input id="sshHost" placeholder="100.x.y.z or client hostname">
+            <label>Execution Target</label>
+            <select id="executionTarget">
+              <option value="local">Local on workstation</option>
+              <option value="ssh">SSH to client project</option>
+            </select>
           </div>
           <div>
-            <label>SSH User</label>
-            <input id="sshUser" placeholder="gerald">
+            <label>Task Type</label>
+            <input id="taskType" value="routine_coding">
           </div>
         </div>
-        <label>SSH Port</label>
-        <input id="sshPort" value="22">
+
+        <label>Project Path</label>
+        <input id="projectPath" placeholder="playground/dummy-agent-app or /home/you/project">
+
+        <div id="sshFields" class="hidden">
+          <div class="row">
+            <div>
+              <label>SSH Host</label>
+              <input id="sshHost" placeholder="100.x.y.z or client hostname">
+            </div>
+            <div>
+              <label>SSH User</label>
+              <input id="sshUser" placeholder="gerald">
+            </div>
+          </div>
+          <label>SSH Port</label>
+          <input id="sshPort" value="22">
+        </div>
+
+        <label>Constraints</label>
+        <textarea id="constraints" placeholder="stdlib only&#10;keep changes small"></textarea>
+
+        <label>Acceptance Criteria</label>
+        <textarea id="acceptance" placeholder="tests pass&#10;README updated"></textarea>
+
+        <label><input id="premiumAllowed" type="checkbox"> Allow cloud escalation</label>
       </div>
 
-      <label>Constraints</label>
-      <textarea id="constraints" placeholder="stdlib only&#10;keep changes small"></textarea>
-
-      <label>Acceptance Criteria</label>
-      <textarea id="acceptance" placeholder="tests pass&#10;README updated"></textarea>
-
-      <label><input id="premiumAllowed" type="checkbox"> Allow cloud escalation</label>
+      <div id="jsonPanel" class="hidden">
+        <p class="small">Paste a task spec or import a `.json` file. You can use either a raw task object or a `{ "task": ... }` wrapper.</p>
+        <div class="stack">
+          <div class="actions">
+            <button class="secondary" id="loadExampleBtn" type="button">Load Example</button>
+            <button class="secondary" id="fillFromFormBtn" type="button">Copy Form Into JSON</button>
+            <button class="secondary" id="applyJsonBtn" type="button">Apply JSON To Form</button>
+          </div>
+          <input id="jsonFile" type="file" accept=".json,application/json">
+          <textarea id="taskJsonInput" class="mono" placeholder='{\n  "title": "Build tiny-notes-cli",\n  "description": "Create a tiny Python CLI notes app...",\n  "project_path": "playground/dummy-agent-app",\n  "execution_target": "local",\n  "constraints": ["stdlib only"],\n  "acceptance_criteria": ["python3 -m unittest -v passes"],\n  "premium_allowed": false\n}'></textarea>
+        </div>
+      </div>
 
       <div class="actions" style="margin-top: 14px;">
         <button id="createTask">Create Task</button>
+        <button class="warn" id="createAndRunTask">Create And Run</button>
         <button class="secondary" id="refreshTasks">Refresh</button>
       </div>
+      <div id="taskCreateStatus" class="status"></div>
 
       <h2 style="margin-top: 20px;">Tasks</h2>
       <div id="taskList" class="task-list"></div>
@@ -244,11 +285,36 @@
       selectedTaskId: null,
       selectedRunId: null,
       stream: null,
+      activeTaskMode: "form",
     };
 
     const $ = (id) => document.getElementById(id);
     const json = (value) => JSON.stringify(value, null, 2);
     const lines = (value) => value.split("\n").map((s) => s.trim()).filter(Boolean);
+    const exampleTask = {
+      title: "Build tiny-notes-cli",
+      description: "Create a tiny Python CLI notes app with add, list, and delete commands, JSON storage, unittest tests, and a short README.",
+      project_path: "playground/dummy-agent-app",
+      execution_target: "local",
+      task_type: "routine_coding",
+      constraints: ["stdlib only", "keep changes small"],
+      acceptance_criteria: ["python3 -m unittest -v passes", "README explains usage"],
+      premium_allowed: false,
+    };
+
+    function setStatus(message, isError = false) {
+      const node = $("taskCreateStatus");
+      node.textContent = message;
+      node.style.color = isError ? "var(--danger)" : "var(--muted)";
+    }
+
+    function setTaskMode(mode) {
+      state.activeTaskMode = mode;
+      $("formPanel").classList.toggle("hidden", mode !== "form");
+      $("jsonPanel").classList.toggle("hidden", mode !== "json");
+      $("formTab").classList.toggle("active", mode === "form");
+      $("jsonTab").classList.toggle("active", mode === "json");
+    }
 
     $("executionTarget").addEventListener("change", () => {
       $("sshFields").classList.toggle("hidden", $("executionTarget").value !== "ssh");
@@ -267,6 +333,65 @@
         return response.json();
       }
       return response.text();
+    }
+
+    function taskPayloadFromForm() {
+      return {
+        title: $("title").value.trim(),
+        description: $("description").value.trim(),
+        project_path: $("projectPath").value.trim() || null,
+        execution_target: $("executionTarget").value,
+        ssh_host: $("sshHost").value.trim() || null,
+        ssh_user: $("sshUser").value.trim() || null,
+        ssh_port: Number($("sshPort").value || "22"),
+        task_type: $("taskType").value.trim() || "routine_coding",
+        constraints: lines($("constraints").value),
+        acceptance_criteria: lines($("acceptance").value),
+        premium_allowed: $("premiumAllowed").checked,
+      };
+    }
+
+    function normalizeTaskPayload(raw) {
+      const payload = raw.input || raw.task || raw;
+      if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+        throw new Error("Task JSON must be an object or a wrapper with task/input.");
+      }
+      return {
+        title: (payload.title || "").trim(),
+        description: (payload.description || "").trim(),
+        project_path: payload.project_path || null,
+        execution_target: payload.execution_target || "local",
+        ssh_host: payload.ssh_host || null,
+        ssh_user: payload.ssh_user || null,
+        ssh_port: Number(payload.ssh_port || 22),
+        task_type: payload.task_type || "routine_coding",
+        constraints: Array.isArray(payload.constraints) ? payload.constraints : [],
+        acceptance_criteria: Array.isArray(payload.acceptance_criteria) ? payload.acceptance_criteria : [],
+        premium_allowed: Boolean(payload.premium_allowed),
+      };
+    }
+
+    function taskPayloadFromJson() {
+      const text = $("taskJsonInput").value.trim();
+      if (!text) {
+        throw new Error("Paste a task JSON payload or import a .json file first.");
+      }
+      return normalizeTaskPayload(JSON.parse(text));
+    }
+
+    function applyTaskToForm(task) {
+      $("title").value = task.title || "";
+      $("description").value = task.description || "";
+      $("projectPath").value = task.project_path || "";
+      $("executionTarget").value = task.execution_target || "local";
+      $("taskType").value = task.task_type || "routine_coding";
+      $("sshHost").value = task.ssh_host || "";
+      $("sshUser").value = task.ssh_user || "";
+      $("sshPort").value = String(task.ssh_port || 22);
+      $("constraints").value = (task.constraints || []).join("\n");
+      $("acceptance").value = (task.acceptance_criteria || []).join("\n");
+      $("premiumAllowed").checked = Boolean(task.premium_allowed);
+      $("sshFields").classList.toggle("hidden", $("executionTarget").value !== "ssh");
     }
 
     function renderTasks() {
@@ -296,22 +421,31 @@
       }
     }
 
-    async function createTask() {
-      const payload = {
-        title: $("title").value.trim(),
-        description: $("description").value.trim(),
-        project_path: $("projectPath").value.trim(),
-        execution_target: $("executionTarget").value,
-        ssh_host: $("sshHost").value.trim() || null,
-        ssh_user: $("sshUser").value.trim() || null,
-        ssh_port: Number($("sshPort").value || "22"),
-        task_type: $("taskType").value.trim() || "routine_coding",
-        constraints: lines($("constraints").value),
-        acceptance_criteria: lines($("acceptance").value),
-        premium_allowed: $("premiumAllowed").checked,
-      };
-      await api("/tasks", { method: "POST", body: JSON.stringify(payload) });
+    async function createTask(runMode = null) {
+      const payload = state.activeTaskMode === "json" ? taskPayloadFromJson() : taskPayloadFromForm();
+      if (!payload.title || !payload.description) {
+        throw new Error("Title and description are required.");
+      }
+      if (!payload.project_path) {
+        throw new Error("Project path is required.");
+      }
+      if (payload.execution_target === "ssh" && (!payload.ssh_host || !payload.ssh_user)) {
+        throw new Error("SSH host and SSH user are required for ssh execution_target.");
+      }
+
+      setStatus(runMode ? "Creating task and starting run..." : "Creating task...");
+      const task = await api("/tasks", { method: "POST", body: JSON.stringify(payload) });
       await loadTasks(true);
+      await selectTask(task.id);
+      if (runMode) {
+        const run = await api(`/tasks/${task.id}/runs`, {
+          method: "POST",
+          body: JSON.stringify({ mode: runMode }),
+        });
+        await loadRuns(task.id);
+        await selectRun(run.id);
+      }
+      setStatus(runMode ? "Task created and run started." : "Task created.");
     }
 
     async function selectTask(taskId) {
@@ -412,7 +546,35 @@
       await selectTask(state.selectedTaskId);
     }
 
-    $("createTask").onclick = createTask;
+    async function importTaskFile(event) {
+      const [file] = event.target.files || [];
+      if (!file) return;
+      const text = await file.text();
+      $("taskJsonInput").value = text;
+      setTaskMode("json");
+      setStatus(`Loaded ${file.name}.`);
+    }
+
+    $("formTab").onclick = () => setTaskMode("form");
+    $("jsonTab").onclick = () => setTaskMode("json");
+    $("loadExampleBtn").onclick = () => {
+      $("taskJsonInput").value = json(exampleTask);
+      setTaskMode("json");
+      setStatus("Loaded example task.");
+    };
+    $("fillFromFormBtn").onclick = () => {
+      $("taskJsonInput").value = json(taskPayloadFromForm());
+      setTaskMode("json");
+      setStatus("Copied form values into JSON.");
+    };
+    $("applyJsonBtn").onclick = () => {
+      applyTaskToForm(taskPayloadFromJson());
+      setTaskMode("form");
+      setStatus("Applied JSON payload to the form.");
+    };
+    $("jsonFile").addEventListener("change", importTaskFile);
+    $("createTask").onclick = () => createTask(null).catch((error) => setStatus(String(error), true));
+    $("createAndRunTask").onclick = () => createTask("patch_and_run").catch((error) => setStatus(String(error), true));
     $("refreshTasks").onclick = () => loadTasks(false);
     $("refreshDetailBtn").onclick = () => selectTask(state.selectedTaskId);
     $("patchOnlyBtn").onclick = () => startRun("patch_only");

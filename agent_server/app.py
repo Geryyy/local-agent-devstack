@@ -104,7 +104,7 @@ def get_task(task_id: str) -> TaskRecord:
     return TaskRecord.model_validate(payload)
 
 
-def _require_project(task: TaskRecord) -> dict:
+def _resolve_project_summary(task: TaskRecord) -> dict:
     try:
         target = resolve_target(task.metadata)
     except ValueError as exc:
@@ -112,10 +112,14 @@ def _require_project(task: TaskRecord) -> dict:
     return summarize_target(target)
 
 
+async def _require_project(task: TaskRecord) -> dict:
+    return await asyncio.to_thread(_resolve_project_summary, task)
+
+
 @app.post("/tasks/{task_id}/draft-plan")
 async def draft_plan(task_id: str) -> dict:
     record = get_task(task_id)
-    project_summary = _require_project(record)
+    project_summary = await _require_project(record)
 
     prompt = "\n\n".join(
         [
@@ -144,7 +148,7 @@ async def draft_plan(task_id: str) -> dict:
 @app.get("/tasks/{task_id}/memory")
 async def task_memory(task_id: str) -> dict:
     record = get_task(task_id)
-    project_summary = _require_project(record)
+    project_summary = await _require_project(record)
     await index_project_memory(project_summary["project_key"], project_summary["snippets"])
     results = await search_project_memory(project_summary["project_key"], f"{record.title}\n{record.description}")
     return {"task_id": task_id, "memory_hits": results}
@@ -153,7 +157,7 @@ async def task_memory(task_id: str) -> dict:
 @app.get("/tasks/{task_id}/briefs")
 def task_briefs(task_id: str) -> dict:
     record = get_task(task_id)
-    project_summary = _require_project(record)
+    project_summary = _resolve_project_summary(record)
     file_list = "\n- ".join(project_summary["files"][:20])
     routing = load_routing_config()
 

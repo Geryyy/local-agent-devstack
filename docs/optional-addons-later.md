@@ -4,9 +4,10 @@ Keep the active baseline focused:
 
 - Docker Compose workstation stack
 - Tailscale access
-- Open WebUI as operator UI
+- Open WebUI for model chat
+- LangGraph Studio for task orchestration
 - vLLM and Ollama as local model backends
-- Agent API starter scaffold
+- Agent execution backend with legacy API routes
 
 Add the items below only when the baseline is working well in daily use.
 

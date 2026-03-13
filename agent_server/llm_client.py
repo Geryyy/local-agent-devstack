@@ -52,7 +52,7 @@ async def generate_model_text(model_id: str, prompt: str) -> Dict[str, Any]:
 
     async with httpx.AsyncClient(timeout=120) as client:
         if provider == "ollama":
-            base_url = config["base_url"].rstrip("/")
+            base_url = os.getenv("OLLAMA_BASE_URL", config["base_url"]).rstrip("/")
             request_payload = {
                 "model": config["model"],
                 "prompt": prompt,

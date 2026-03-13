@@ -5,7 +5,9 @@ from pathlib import Path
 from typing import Dict, List
 
 
-DEFAULT_WORKSPACE_ROOT = Path(os.getenv("AGENT_WORKSPACE_ROOT", "/workspace"))
+DEFAULT_WORKSPACE_ROOT = Path(
+    os.getenv("AGENT_WORKSPACE_ROOT", str(Path(__file__).resolve().parent.parent))
+)
 TEXT_EXTENSIONS = {
     ".md",
     ".txt",

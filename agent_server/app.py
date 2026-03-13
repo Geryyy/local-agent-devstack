@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import uuid
+from contextlib import asynccontextmanager
 from typing import Dict, List
 
 from fastapi import FastAPI, HTTPException
@@ -21,7 +22,14 @@ from research_agent import describe_research_agent
 from routing import load_models_config, load_routing_config, validate_model_references
 from workflow import execute_task_run
 
-app = FastAPI(title="local-agent-devstack Agent API")
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    validate_model_references(load_routing_config(), load_models_config())
+    init_db()
+    yield
+
+app = FastAPI(title="local-agent-devstack Agent API", lifespan=lifespan)
 
 
 @app.get("/")
@@ -32,13 +40,6 @@ def root() -> RedirectResponse:
 @app.get("/ui")
 def ui() -> FileResponse:
     return FileResponse("/app/static/dashboard.html")
-
-
-@app.on_event("startup")
-def validate_configs() -> None:
-    validate_model_references(load_routing_config(), load_models_config())
-    init_db()
-
 
 @app.get("/health")
 def health() -> dict:

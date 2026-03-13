@@ -7,8 +7,9 @@ from typing import Any, Dict
 import yaml
 
 
-DEFAULT_ROUTING_CONFIG = "/configs/model-routing.yaml"
-DEFAULT_MODELS_CONFIG = "/configs/models.yaml"
+REPO_ROOT = Path(__file__).resolve().parent.parent
+DEFAULT_ROUTING_CONFIG = str(REPO_ROOT / "configs" / "model-routing.yaml")
+DEFAULT_MODELS_CONFIG = str(REPO_ROOT / "configs" / "models.yaml")
 
 
 def _load_yaml(path_str: str) -> Dict[str, Any]:

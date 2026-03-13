@@ -1,0 +1,12 @@
+{
+  "dependencies": [
+    "./agent_server"
+  ],
+  "graphs": {
+    "agent_orchestrator": "./agent_server/studio_graph.py:studio_graph"
+  },
+  "http": {
+    "app": "./agent_server/app.py:app"
+  },
+  "python_version": "3.11"
+}

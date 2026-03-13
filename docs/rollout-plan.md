@@ -5,19 +5,22 @@
 - copy `.env.example` to `.env`
 - set workstation-local credentials and passwords
 - join Tailscale on the workstation
-- start the Docker stack with `./scripts/start-workstation.sh`
+- start the Docker service stack with `./scripts/start-workstation.sh`
 - pull the default local model with `./scripts/pull-ollama-model.sh`
+- start the LangGraph API server with `./scripts/start-langgraph-studio.sh`
 
 ## Stage 2 - Client access
 
 - join Tailscale on the laptop
-- confirm the laptop can open Open WebUI and reach the Agent API
-- confirm the laptop can open the Agent Ops UI at `/ui`
+- confirm the laptop can open Open WebUI and reach the LangGraph API
+- connect LangGraph Studio to the workstation API URL
+- confirm the fallback Agent Ops UI at `/ui` still works when needed
 - use SSH tunneling only if direct Tailscale access is not desired
 
 ## Stage 3 - Starter agent workflows
 
 - create tasks through the Agent API
+- create and run tasks through LangGraph Studio
 - verify planner-driven initial decomposition
 - verify phase progression through the task lifecycle endpoints
 - verify durable task and run storage

@@ -21,15 +21,16 @@ That forwards these workstation services onto laptop-local ports:
 After that, use the framework from the laptop as if it were local:
 
 - Open WebUI: `http://127.0.0.1:3000`
-- Agent API: `http://127.0.0.1:2024`
+- LangGraph API: `http://127.0.0.1:2024`
 - Agent Ops UI: `http://127.0.0.1:2024/ui`
 
 Typical flow:
 
 1. SSH to the workstation and start the stack with [scripts/start-workstation.sh](/home/geraldebmer/repos/local-agent-devstack/scripts/start-workstation.sh)
 2. On the laptop, run [scripts/start-client-tunnel.sh](/home/geraldebmer/repos/local-agent-devstack/scripts/start-client-tunnel.sh)
-3. Open WebUI or Agent Ops in the laptop browser
-4. Create and monitor tasks through the Agent API on `127.0.0.1:2024`
+3. Open WebUI in the laptop browser
+4. Connect LangGraph Studio to `http://127.0.0.1:2024`
+5. Use the fallback Agent Ops UI only when you want the repo-local custom dashboard
 
 ## Client-hosted project mode
 
@@ -56,3 +57,9 @@ If that fails with `Permission denied (publickey,password)`, add the workstation
 ## Tailscale path
 
 Use [scripts/start-tailscale-client.sh](/home/geraldebmer/repos/local-agent-devstack/scripts/start-tailscale-client.sh) if you want direct workstation access instead of SSH tunnels.
+
+When using Tailscale, the preferred orchestration path is:
+
+- Open WebUI at `http://workstation:3000`
+- LangGraph API at `http://workstation:2024`
+- connect LangGraph Studio to the workstation API URL

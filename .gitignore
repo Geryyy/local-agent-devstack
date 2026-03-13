@@ -8,5 +8,7 @@ __pycache__/
 .vscode/
 .pytest_cache/
 .venv/
+.venv-langgraph/
 venv/
+.langgraph_api/
 playground/dummy-agent-app/todo.json

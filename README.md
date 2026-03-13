@@ -2,7 +2,7 @@
 
 Local-first, multi-agent development stack for a workstation + client laptop setup.
 
-This repo now targets a workstation-hosted Docker stack that serves local models, operator UI, retrieval, and a usable agent execution API. The laptop stays the coding surface and reaches the workstation primarily over Tailscale.
+This repo now targets a workstation-hosted local-first stack with LangGraph Studio as the primary orchestration UI. The workstation serves models and execution services, while the laptop stays the coding surface and reaches the workstation primarily over Tailscale.
 
 ## Core idea
 
@@ -12,7 +12,8 @@ This repo now targets a workstation-hosted Docker stack that serves local models
   - Qdrant
   - Redis
   - Postgres
-  - Agent API
+  - LangGraph API server
+  - optional legacy Agent API routes
   - optional `vllm` profile
 - Workstation local model runtime:
   - containerized Ollama by default
@@ -34,8 +35,8 @@ SSH tunneling remains available as a fallback, but it is no longer the primary a
 After startup, the typical workstation endpoints are:
 
 - Open WebUI: `http://workstation:3000`
-- Agent API: `http://workstation:2024`
-- Agent Ops UI: `http://workstation:2024/ui`
+- LangGraph API: `http://workstation:2024`
+- legacy Agent Ops UI: `http://workstation:2024/ui`
 - vLLM: `http://workstation:8001/v1`
 - Ollama: `http://workstation:11434`
 - Qdrant: `http://workstation:6333`
@@ -63,13 +64,21 @@ cp .env.example .env
 ./scripts/start-tailscale-workstation.sh
 ```
 
-4. Start the workstation stack:
+4. Start the workstation service stack:
 
 ```bash
 ./scripts/start-workstation.sh
 ```
 
-To stop it later without removing containers:
+5. Start the LangGraph dev server on the workstation:
+
+```bash
+./scripts/start-langgraph-studio.sh
+```
+
+This creates `.venv-langgraph`, installs the official local dev dependencies, and starts `langgraph dev` with [langgraph.json](/home/geraldebmer/repos/local-agent-devstack/langgraph.json).
+
+To stop the Docker services later without removing containers:
 
 ```bash
 ./scripts/stop-workstation.sh
@@ -83,17 +92,20 @@ For a fuller teardown:
 
 The repo pins `VLLM_IMAGE` to `vllm/vllm-openai:v0.10.2`, but `vllm` is now opt-in behind the `vllm` Compose profile instead of part of the default workstation path.
 
-5. On the laptop, join the same tailnet:
+6. On the laptop, join the same tailnet:
 
 ```bash
 ./scripts/start-tailscale-client.sh
 ```
 
-6. Open the operator UI from the laptop:
+7. Open the operator surfaces from the laptop:
 
 ```text
-http://workstation:3000
+Open WebUI: http://workstation:3000
+LangGraph API: http://workstation:2024
 ```
+
+Then connect LangGraph Studio to the workstation API URL.
 
 If you are using SSH only instead of Tailscale, keep the stack on the workstation and open local tunnels from the laptop:
 
@@ -104,13 +116,42 @@ If you are using SSH only instead of Tailscale, keep the stack on the workstatio
 Then use these laptop-local URLs:
 
 - Open WebUI: `http://127.0.0.1:3000`
-- Agent API: `http://127.0.0.1:2024`
-- Agent Ops UI: `http://127.0.0.1:2024/ui`
+- LangGraph API: `http://127.0.0.1:2024`
+- legacy Agent Ops UI: `http://127.0.0.1:2024/ui`
 - Ollama: `http://127.0.0.1:11434`
 
-## Agent API scope
+## LangGraph Studio workflow
 
-This repo ships a runnable FastAPI backend for local-first planning and execution. It is useful today, but still intentionally lighter than a full production orchestration platform.
+The primary orchestration path is now the official LangGraph development server plus LangGraph Studio.
+
+Studio graph entrypoint:
+
+- [agent_server/studio_graph.py](/home/geraldebmer/repos/local-agent-devstack/agent_server/studio_graph.py)
+
+Studio config:
+
+- [langgraph.json](/home/geraldebmer/repos/local-agent-devstack/langgraph.json)
+
+The Studio graph accepts task-style input directly:
+
+```json
+{
+  "title": "Build tiny-notes-cli",
+  "description": "Create a tiny Python CLI notes app with tests and README.",
+  "project_path": "playground/dummy-agent-app",
+  "execution_target": "local",
+  "constraints": ["stdlib only"],
+  "acceptance_criteria": ["python3 -m unittest -v passes"],
+  "premium_allowed": false,
+  "run_mode": "patch_and_run"
+}
+```
+
+That input bootstraps a task record, runs the planner, code agent, and build agent, and persists task/run state into Postgres just like the existing backend flow.
+
+## Legacy API scope
+
+This repo still ships the runnable FastAPI backend for local-first planning and execution. It remains useful for custom routes, health checks, the fallback dashboard, and backward compatibility.
 
 Implemented now:
 
@@ -137,7 +178,7 @@ Implemented now:
 - LangGraph-backed local execution loop for planner -> coder -> build
 - Qdrant-backed project memory indexing and retrieval for planner/coder prompts
 - writable workspace mounts so runs can edit repos and execute commands
-- built-in operator dashboard for task creation, monitoring, and steering at `/ui`
+- built-in fallback dashboard for task creation, monitoring, and steering at `/ui`
 - run modes for `patch_only` and `patch_and_run`
 - basic server-sent event streaming for run state
 - premium-capable model routing with OpenAI or Anthropic fallbacks when a task is marked premium-eligible and retries cross the local threshold
@@ -151,9 +192,9 @@ Documented for later, not implemented yet:
 
 ## Dummy project workflow
 
-You can now use the built-in Agent Ops dashboard at `http://localhost:2024/ui` for task creation, run control, and live monitoring.
+You can use either LangGraph Studio as the primary orchestration UI or the built-in fallback dashboard at `http://localhost:2024/ui`.
 
-For API usage, create a task against either:
+For legacy API usage, create a task against either:
 
 - a repo mounted under `/workspace` in the agent API container
 - or a repo that stays on the client and is reachable from the workstation over SSH
@@ -245,6 +286,17 @@ Requirements for SSH-backed client projects:
 - the client project path must be absolute on the client machine
 - the client must have `python3` available for file summary/write/run helpers
 - the workstation user or container must have SSH credentials that can access the client
+
+## Notes on LangGraph Studio
+
+LangGraph Studio is the preferred UI for:
+
+- creating and re-running graph executions
+- inspecting node-by-node state
+- comparing local-only and premium-enabled runs
+- steering task inputs without maintaining a separate custom frontend
+
+The lightweight Agent Ops UI remains available as a practical fallback for repo-local task ops, but Studio is now the first-class orchestration surface.
 
 ## vLLM compatibility note
 

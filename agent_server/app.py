@@ -5,7 +5,7 @@ import uuid
 from typing import Dict, List
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
 
 from build_agent import describe_build_agent
 from code_agent import describe_code_agent
@@ -14,14 +14,24 @@ from db import get_task as db_get_task
 from db import init_db, list_runs as db_list_runs, list_tasks as db_list_tasks, save_task
 from llm_client import generate_role_text
 from memory import index_project_memory, search_project_memory
-from models import RunRecord, RunRequest, TaskRecord, TaskRequest, TaskPhase
+from models import RunRecord, RunRequest, SteerRequest, TaskRecord, TaskRequest, TaskPhase
 from planner_agent import plan_to_record
+from project_targets import resolve_target, summarize_target
 from research_agent import describe_research_agent
 from routing import load_models_config, load_routing_config, validate_model_references
 from workflow import execute_task_run
-from workspace_context import resolve_project_path, summarize_project
 
 app = FastAPI(title="local-agent-devstack Agent API")
+
+
+@app.get("/")
+def root() -> RedirectResponse:
+    return RedirectResponse(url="/ui")
+
+
+@app.get("/ui")
+def ui() -> FileResponse:
+    return FileResponse("/app/static/dashboard.html")
 
 
 @app.on_event("startup")
@@ -55,6 +65,10 @@ def create_task(task: TaskRequest) -> TaskRecord:
     record.metadata["constraints"] = task.constraints
     record.metadata["acceptance_criteria"] = task.acceptance_criteria
     record.metadata["task_type"] = task.task_type
+    record.metadata["execution_target"] = task.execution_target
+    record.metadata["ssh_host"] = task.ssh_host
+    record.metadata["ssh_user"] = task.ssh_user
+    record.metadata["ssh_port"] = task.ssh_port
     save_task(task_id, record.model_dump(mode="json"))
     return record
 
@@ -73,19 +87,11 @@ def get_task(task_id: str) -> TaskRecord:
 
 
 def _require_project(task: TaskRecord) -> dict:
-    project_path = task.metadata.get("project_path")
-    if not project_path:
-        raise HTTPException(status_code=400, detail="Task has no project_path")
-
     try:
-        project_root = resolve_project_path(project_path)
+        target = resolve_target(task.metadata)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-
-    if project_root is None:
-        raise HTTPException(status_code=400, detail="Task has no project_path")
-
-    return summarize_project(project_root)
+    return summarize_target(target)
 
 
 @app.post("/tasks/{task_id}/draft-plan")
@@ -120,13 +126,9 @@ async def draft_plan(task_id: str) -> dict:
 @app.get("/tasks/{task_id}/memory")
 async def task_memory(task_id: str) -> dict:
     record = get_task(task_id)
-    project_path = record.metadata.get("project_path")
-    project_root = resolve_project_path(project_path)
-    if project_root is None:
-        raise HTTPException(status_code=400, detail="Task has no project_path")
-
-    await index_project_memory(project_root)
-    results = await search_project_memory(project_root, f"{record.title}\n{record.description}")
+    project_summary = _require_project(record)
+    await index_project_memory(project_summary["project_key"], project_summary["snippets"])
+    results = await search_project_memory(project_summary["project_key"], f"{record.title}\n{record.description}")
     return {"task_id": task_id, "memory_hits": results}
 
 
@@ -198,6 +200,23 @@ def advance_task(task_id: str) -> TaskRecord:
         record.phase = order[idx + 1]
         record.notes.append(f"Task advanced to phase: {record.phase.value}")
 
+    save_task(task_id, record.model_dump(mode="json"))
+    return record
+
+
+@app.post("/tasks/{task_id}/steer", response_model=TaskRecord)
+def steer_task(task_id: str, steer_request: SteerRequest) -> TaskRecord:
+    record = get_task(task_id)
+    if steer_request.note:
+        record.notes.append(f"Operator: {steer_request.note}")
+    if steer_request.premium_selected is not None:
+        record.metadata["premium_selected"] = steer_request.premium_selected
+        record.notes.append(
+            f"Operator set premium_selected={steer_request.premium_selected}."
+        )
+    if steer_request.commands_override:
+        record.metadata["commands_override"] = steer_request.commands_override
+        record.notes.append("Operator updated verification commands.")
     save_task(task_id, record.model_dump(mode="json"))
     return record
 

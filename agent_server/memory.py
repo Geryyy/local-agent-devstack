@@ -3,12 +3,9 @@ from __future__ import annotations
 import hashlib
 import math
 import os
-from pathlib import Path
-from typing import Dict, List
+from typing import List
 
 import httpx
-
-from workspace_context import summarize_project
 
 
 QDRANT_URL = os.getenv("QDRANT_URL", "http://qdrant:6333").rstrip("/")
@@ -42,24 +39,22 @@ async def ensure_collection() -> None:
             response.raise_for_status()
 
 
-async def index_project_memory(project_root: Path) -> Dict[str, object]:
-    summary = summarize_project(project_root)
+async def index_project_memory(project_key: str, snippets: List[str]) -> None:
+    await ensure_collection()
     points = []
-    for index, snippet in enumerate(summary["snippets"]):
-        point_id = abs(hash(f"{project_root}:{index}")) % (2**31)
-        payload = {
-            "project_root": str(project_root),
-            "text": snippet,
-        }
+    for index, snippet in enumerate(snippets):
+        point_id = abs(hash(f"{project_key}:{index}")) % (2**31)
         points.append(
             {
                 "id": point_id,
                 "vector": _embed_text(snippet),
-                "payload": payload,
+                "payload": {
+                    "project_key": project_key,
+                    "text": snippet,
+                },
             }
         )
 
-    await ensure_collection()
     async with httpx.AsyncClient(timeout=30) as client:
         response = await client.put(
             f"{QDRANT_URL}/collections/{COLLECTION_NAME}/points",
@@ -67,10 +62,8 @@ async def index_project_memory(project_root: Path) -> Dict[str, object]:
         )
         response.raise_for_status()
 
-    return summary
 
-
-async def search_project_memory(project_root: Path, query: str, limit: int = 3) -> List[str]:
+async def search_project_memory(project_key: str, query: str, limit: int = 3) -> List[str]:
     await ensure_collection()
     async with httpx.AsyncClient(timeout=30) as client:
         response = await client.post(
@@ -80,7 +73,7 @@ async def search_project_memory(project_root: Path, query: str, limit: int = 3) 
                 "limit": limit,
                 "filter": {
                     "must": [
-                        {"key": "project_root", "match": {"value": str(project_root)}},
+                        {"key": "project_key", "match": {"value": project_key}},
                     ]
                 },
                 "with_payload": True,

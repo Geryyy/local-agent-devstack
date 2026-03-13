@@ -49,6 +49,10 @@ def plan_to_record(task_id: str, task: TaskRequest) -> TaskRecord:
         metadata={
             "premium_selected": plan["premium"],
             "project_path": task.project_path,
+            "execution_target": task.execution_target,
+            "ssh_host": task.ssh_host,
+            "ssh_user": task.ssh_user,
+            "ssh_port": task.ssh_port,
             "routing_summary": plan["routing_summary"],
         },
     )

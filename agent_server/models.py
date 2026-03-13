@@ -22,6 +22,10 @@ class TaskRequest(BaseModel):
     title: str
     description: str
     project_path: Optional[str] = None
+    execution_target: Literal["local", "ssh"] = "local"
+    ssh_host: Optional[str] = None
+    ssh_user: Optional[str] = None
+    ssh_port: int = 22
     scope: Optional[List[str]] = None
     task_type: str = "routine_coding"
     constraints: List[str] = Field(default_factory=list)
@@ -55,3 +59,9 @@ class RunRecord(BaseModel):
     touched_files: List[str] = Field(default_factory=list)
     command_results: List[Dict[str, Any]] = Field(default_factory=list)
     error: Optional[str] = None
+
+
+class SteerRequest(BaseModel):
+    note: str = ""
+    premium_selected: Optional[bool] = None
+    commands_override: List[str] = Field(default_factory=list)

@@ -12,6 +12,7 @@
 
 - join Tailscale on the laptop
 - confirm the laptop can open Open WebUI and reach the Agent API
+- confirm the laptop can open the Agent Ops UI at `/ui`
 - use SSH tunneling only if direct Tailscale access is not desired
 
 ## Stage 3 - Starter agent workflows
@@ -27,6 +28,7 @@
 ## Stage 4 - Project integration
 
 - connect your editor, browser, and terminal workflow to workstation services
+- verify the workstation can orchestrate a client-hosted repo over SSH
 - use local models by default and premium escalation only when needed
 - evaluate the stack on one real repo before expanding the workflow
 - if `vLLM` image/runtime compatibility lags behind your driver, pin `VLLM_IMAGE` to a compatible official tag instead of using `latest`

@@ -35,6 +35,7 @@ After startup, the typical workstation endpoints are:
 
 - Open WebUI: `http://workstation:3000`
 - Agent API: `http://workstation:2024`
+- Agent Ops UI: `http://workstation:2024/ui`
 - vLLM: `http://workstation:8001/v1`
 - Ollama: `http://workstation:11434`
 - Qdrant: `http://workstation:6333`
@@ -68,6 +69,18 @@ cp .env.example .env
 ./scripts/start-workstation.sh
 ```
 
+To stop it later without removing containers:
+
+```bash
+./scripts/stop-workstation.sh
+```
+
+For a fuller teardown:
+
+```bash
+./scripts/stop-workstation.sh --down
+```
+
 The repo pins `VLLM_IMAGE` to `vllm/vllm-openai:v0.10.2`, but `vllm` is now opt-in behind the `vllm` Compose profile instead of part of the default workstation path.
 
 5. On the laptop, join the same tailnet:
@@ -82,6 +95,19 @@ The repo pins `VLLM_IMAGE` to `vllm/vllm-openai:v0.10.2`, but `vllm` is now opt-
 http://workstation:3000
 ```
 
+If you are using SSH only instead of Tailscale, keep the stack on the workstation and open local tunnels from the laptop:
+
+```bash
+./scripts/start-client-tunnel.sh youruser workstation
+```
+
+Then use these laptop-local URLs:
+
+- Open WebUI: `http://127.0.0.1:3000`
+- Agent API: `http://127.0.0.1:2024`
+- Agent Ops UI: `http://127.0.0.1:2024/ui`
+- Ollama: `http://127.0.0.1:11434`
+
 ## Agent API scope
 
 This repo ships a runnable FastAPI backend for local-first planning and execution. It is useful today, but still intentionally lighter than a full production orchestration platform.
@@ -90,10 +116,12 @@ Implemented now:
 
 - `GET /health`
 - `GET /agents`
+- `GET /ui`
 - `POST /tasks`
 - `GET /tasks`
 - `GET /tasks/{task_id}`
 - `POST /tasks/{task_id}/advance`
+- `POST /tasks/{task_id}/steer`
 - `POST /tasks/{task_id}/draft-plan`
 - `GET /tasks/{task_id}/briefs`
 - `POST /tasks/{task_id}/runs`
@@ -104,10 +132,12 @@ Implemented now:
 - initial planner-based task decomposition
 - YAML-backed routing policy loading
 - project-aware local planning against repos mounted into the agent API container
+- project-aware planning and execution against SSH-reachable client projects
 - durable task and run storage in Postgres
 - LangGraph-backed local execution loop for planner -> coder -> build
 - Qdrant-backed project memory indexing and retrieval for planner/coder prompts
 - writable workspace mounts so runs can edit repos and execute commands
+- built-in operator dashboard for task creation, monitoring, and steering at `/ui`
 - run modes for `patch_only` and `patch_and_run`
 - basic server-sent event streaming for run state
 - premium-capable model routing with OpenAI or Anthropic fallbacks when a task is marked premium-eligible and retries cross the local threshold
@@ -121,7 +151,12 @@ Documented for later, not implemented yet:
 
 ## Dummy project workflow
 
-Create a task against a repo mounted under `/workspace` in the agent API container, then ask the planner for a local draft and fetch role briefs you can paste into WebUI or editor agents.
+You can now use the built-in Agent Ops dashboard at `http://localhost:2024/ui` for task creation, run control, and live monitoring.
+
+For API usage, create a task against either:
+
+- a repo mounted under `/workspace` in the agent API container
+- or a repo that stays on the client and is reachable from the workstation over SSH
 
 ```bash
 curl -X POST http://localhost:2024/tasks \
@@ -130,6 +165,7 @@ curl -X POST http://localhost:2024/tasks \
     "title": "Add done command and tests",
     "description": "Extend the dummy todo CLI with a done command, file-backed tests, and slightly better help text.",
     "project_path": "playground/dummy-agent-app",
+    "execution_target": "local",
     "constraints": ["stdlib only", "keep changes small"],
     "acceptance_criteria": [
       "done command marks an item complete",
@@ -146,6 +182,9 @@ Then:
 curl -X POST http://localhost:2024/tasks/<task_id>/draft-plan
 curl http://localhost:2024/tasks/<task_id>/memory
 curl http://localhost:2024/tasks/<task_id>/briefs
+curl -X POST http://localhost:2024/tasks/<task_id>/steer \
+  -H 'Content-Type: application/json' \
+  -d '{"note":"Prefer the smallest patch possible","premium_selected":false}'
 ```
 
 To run the automated local workflow:
@@ -168,6 +207,44 @@ To watch a run:
 ```bash
 curl http://localhost:2024/runs/<run_id>/stream
 ```
+
+## Client-hosted projects
+
+If the workstation should act only as the service provider, create tasks with `execution_target: "ssh"` and point `project_path` at the client-side absolute path.
+
+The workstation must be able to reach the client over key-based SSH first. A quick host-level smoke test is:
+
+```bash
+ssh youruser@client-tailscale-ip 'pwd'
+```
+
+If that does not work yet, the agent backend will not be able to edit or run against the client project either.
+
+Example:
+
+```bash
+curl -X POST http://localhost:2024/tasks \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "title": "Client repo task",
+    "description": "Update a project that stays on the client laptop.",
+    "execution_target": "ssh",
+    "ssh_host": "100.123.157.61",
+    "ssh_user": "gerald",
+    "ssh_port": 22,
+    "project_path": "/home/gerald/projects/tiny-notes-cli",
+    "constraints": ["stdlib only"],
+    "acceptance_criteria": ["tests pass"],
+    "premium_allowed": false
+  }'
+```
+
+Requirements for SSH-backed client projects:
+
+- the workstation must be able to SSH to the client over Tailscale
+- the client project path must be absolute on the client machine
+- the client must have `python3` available for file summary/write/run helpers
+- the workstation user or container must have SSH credentials that can access the client
 
 ## vLLM compatibility note
 
@@ -210,6 +287,17 @@ Current workstation takeaway:
 - `qwen2.5-coder:7b` remains the safest default for multi-agent orchestration
 - `deepcoder:14b` fits better than the 30B model, but needs extra prompt or template control before it is a reliable strict-JSON worker
 - `qwen3-coder:30b` works as a manual heavy coder, but leaves very little VRAM headroom
+
+## Open WebUI account setup
+
+This stack keeps Open WebUI signup enabled by default so you can create accounts without extra bootstrap steps.
+
+If you can reach the UI, you can create a local Open WebUI account at:
+
+- `http://localhost:3000`
+- or your workstation Tailscale URL
+
+If you want stricter access later, change `ENABLE_SIGNUP` for `open-webui` in [docker-compose.yml](/home/geraldebmer/repos/local-agent-devstack/docker-compose.yml).
 
 ## Security notes
 

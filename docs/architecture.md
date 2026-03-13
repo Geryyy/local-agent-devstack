@@ -44,6 +44,7 @@ Typical workstation ports:
 
 - Open WebUI on `3000`
 - Agent API on `2024`
+- Agent Ops UI on `2024/ui`
 - vLLM on `8001`
 - Ollama on `11434`
 - Qdrant on `6333`
@@ -59,6 +60,8 @@ The intended flow is:
 
 Open WebUI is the primary human-facing interface. The Agent API is the starter execution surface for structured task handling and future orchestration work.
 
+The Agent API now also serves a lightweight operator dashboard for task creation, run control, and live monitoring.
+
 ## Current implementation level
 
 Implemented now:
@@ -69,6 +72,8 @@ Implemented now:
 - FastAPI agent service with durable task and run state in Postgres
 - LangGraph-backed local execution loop for planner, coder, and build steps
 - writable workspace mounts so the backend can edit and execute in target repos
+- SSH-backed client project execution so the workstation can orchestrate while the project remains on the client
+- built-in operator dashboard at `/ui`
 - Open WebUI can start without a live vLLM container, which helps on workstations where vLLM image/runtime compatibility is still being tuned
 - containerized Ollama is the default local inference path
 - vLLM is intentionally pinned to a specific image tag in `.env`, but stays opt-in behind a Compose profile

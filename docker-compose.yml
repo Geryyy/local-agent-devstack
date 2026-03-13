@@ -49,7 +49,7 @@ services:
     ports:
       - "3000:8080"
     environment:
-      ENABLE_SIGNUP: "false"
+      ENABLE_SIGNUP: "true"
       ENABLE_PERSISTENT_CONFIG: "true"
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
@@ -107,6 +107,7 @@ services:
       - ./agent_server:/app
       - ./configs:/configs:ro
       - ./:/workspace
+      - ${HOME}/.ssh:/ssh-src:ro
 
 volumes:
   ollama_data:

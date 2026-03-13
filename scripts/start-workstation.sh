@@ -1,6 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+match_env_var() {
+  local pattern="$1"
+  local file="$2"
+  if command -v rg >/dev/null 2>&1; then
+    rg -q "$pattern" "$file"
+  else
+    grep -Eq "$pattern" "$file"
+  fi
+}
+
 if [[ ! -f ".env" ]]; then
   echo "No .env found. Copy .env.example to .env first."
   exit 1
@@ -21,7 +31,7 @@ required_vars=(
 
 missing_vars=()
 for var_name in "${required_vars[@]}"; do
-  if ! rg -q "^${var_name}=.+$" ".env"; then
+  if ! match_env_var "^${var_name}=.+$" ".env"; then
     missing_vars+=("${var_name}")
   fi
 done

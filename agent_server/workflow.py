@@ -3,19 +3,17 @@ from __future__ import annotations
 import json
 import re
 import uuid
-from pathlib import Path
 from typing import Any, Dict, List, TypedDict
 
 from langgraph.graph import END, StateGraph
 
 from auto_repair import apply_auto_repairs
 from db import save_run, save_task
-from executor import run_commands, write_files
 from llm_client import generate_role_text, resolve_role_model_ids
 from memory import index_project_memory, search_project_memory
 from models import TaskPhase, TaskRecord
+from project_targets import resolve_target, run_commands_on_target, summarize_target, write_files_to_target
 from routing import load_routing_config
-from workspace_context import resolve_project_path, summarize_project
 
 
 class RunState(TypedDict, total=False):
@@ -59,11 +57,10 @@ def _persist_intermediate_state(state: RunState, *, status: str) -> None:
 async def _planner_node(state: RunState) -> RunState:
     task = TaskRecord.model_validate(state["task"])
     project_summary = state["project_summary"]
-    project_root = resolve_project_path(task.metadata.get("project_path"))
+    target = resolve_target(task.metadata)
     memory_hits: List[str] = []
-    if project_root is not None:
-        await index_project_memory(project_root)
-        memory_hits = await search_project_memory(project_root, f"{task.title}\n{task.description}")
+    await index_project_memory(project_summary["project_key"], project_summary["snippets"])
+    memory_hits = await search_project_memory(project_summary["project_key"], f"{task.title}\n{task.description}")
     prompt = "\n\n".join(
         [
             "You are the planner agent for a local coding stack.",
@@ -177,23 +174,23 @@ async def _coder_node(state: RunState) -> RunState:
 
 def _build_node(state: RunState) -> RunState:
     task = TaskRecord.model_validate(state["task"])
-    project_root = resolve_project_path(task.metadata.get("project_path"))
-    if project_root is None:
-        raise ValueError("Task has no project path.")
+    target = resolve_target(task.metadata)
 
     mode = task.metadata.get("run_mode", "patch_and_run")
     touched_files: List[str] = []
     command_results: List[Dict[str, Any]] = []
 
     if mode in {"patch_only", "patch_and_run"}:
-        touched_files = write_files(project_root, state.get("file_writes", []))
+        touched_files = write_files_to_target(target, state.get("file_writes", []))
     if mode == "patch_and_run":
-        command_results = run_commands(project_root, state.get("commands", []))
-    repaired_files = apply_auto_repairs(project_root, command_results)
+        command_results = run_commands_on_target(target, state.get("commands", []))
+    repaired_files = []
+    if target["kind"] == "local":
+        repaired_files = apply_auto_repairs(target["project_root"], command_results)
     if repaired_files:
         touched_files = sorted(set(touched_files + repaired_files))
         if mode == "patch_and_run":
-            command_results = run_commands(project_root, state.get("commands", []))
+            command_results = run_commands_on_target(target, state.get("commands", []))
     task.files_touched = touched_files
     success = True if mode != "patch_and_run" else all(result["success"] for result in command_results)
     task.phase = TaskPhase.COMPLETED if success else TaskPhase.FAILED
@@ -203,7 +200,7 @@ def _build_node(state: RunState) -> RunState:
     save_task(task.id, task.model_dump(mode="json"))
 
     result = {
-        "project_summary": summarize_project(project_root),
+        "project_summary": summarize_target(target),
         "touched_files": touched_files,
         "command_results": command_results,
         "retry_count": state.get("retry_count", 0) + (0 if success else 1),
@@ -250,15 +247,13 @@ GRAPH = _build_workflow()
 
 
 async def execute_task_run(task: TaskRecord) -> Dict[str, Any]:
-    project_root = resolve_project_path(task.metadata.get("project_path"))
-    if project_root is None:
-        raise ValueError("Task has no project_path.")
+    target = resolve_target(task.metadata)
 
     run_id = str(uuid.uuid4())
     initial_state: RunState = {
         "run_id": run_id,
         "task": task.model_dump(mode="json"),
-        "project_summary": summarize_project(project_root),
+        "project_summary": summarize_target(target),
         "retry_count": 0,
         "premium_calls_used": task.premium_calls_used,
         "memory_hits": [],

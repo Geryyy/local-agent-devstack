@@ -8,6 +8,7 @@ __pycache__/
 .vscode/
 .pytest_cache/
 .venv/
+.venv-roo-mcp/
 .venv-langgraph/
 venv/
 .langgraph_api/

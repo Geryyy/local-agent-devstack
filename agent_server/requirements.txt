@@ -7,3 +7,4 @@ redis
 psycopg[binary]
 langgraph
 langgraph-cli[inmem]
+mcp

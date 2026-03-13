@@ -303,6 +303,10 @@ For the fastest local workflow, use the fallback Agent Ops UI at `http://localho
 - importing a `.json` task file such as [playground/example-task.json](/home/geraldebmer/repos/local-agent-devstack/playground/example-task.json)
 - one-click `Create And Run` for `patch_and_run`
 
+## Roo Code workflow
+
+For VS Code orchestration with cloud planning and local coding agents, use Roo Code with the MCP bridge documented in [docs/roo-code.md](/home/geraldebmer/repos/local-agent-devstack/docs/roo-code.md).
+
 ## vLLM compatibility note
 
 `vllm/vllm-openai:latest` can move to a newer CUDA runtime than your workstation driver supports. This repo now pins `VLLM_IMAGE` to `vllm/vllm-openai:v0.10.2` by default to avoid that drift.

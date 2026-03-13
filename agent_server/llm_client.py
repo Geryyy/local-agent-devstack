@@ -1,11 +1,24 @@
 from __future__ import annotations
 
 import os
+import re
 from typing import Any, Dict
 
 import httpx
 
 from routing import load_models_config, load_routing_config
+
+
+def _ollama_system_prompt(model_id: str, config: Dict[str, Any]) -> str | None:
+    model_name = str(config.get("model", "")).lower()
+    if model_id == "ollama_coder_mid" or re.search(r"\bdeepcoder\b", model_name):
+        return (
+            "You are a coding model used inside an automated tool loop. "
+            "Return only the final answer requested by the user or tool. "
+            "Never emit hidden reasoning, chain-of-thought, or <think> tags. "
+            "If JSON is requested, return valid JSON only."
+        )
+    return None
 
 
 def _resolve_model(model_id: str) -> Dict[str, Any]:
@@ -40,16 +53,21 @@ async def generate_model_text(model_id: str, prompt: str) -> Dict[str, Any]:
     async with httpx.AsyncClient(timeout=120) as client:
         if provider == "ollama":
             base_url = config["base_url"].rstrip("/")
+            request_payload = {
+                "model": config["model"],
+                "prompt": prompt,
+                "stream": False,
+                "keep_alive": 0,
+                "options": {
+                    "temperature": 0,
+                },
+            }
+            system_prompt = _ollama_system_prompt(model_id, config)
+            if system_prompt:
+                request_payload["system"] = system_prompt
             response = await client.post(
                 f"{base_url}/api/generate",
-                json={
-                    "model": config["model"],
-                    "prompt": prompt,
-                    "stream": False,
-                    "options": {
-                        "temperature": 0,
-                    },
-                },
+                json=request_payload,
             )
             response.raise_for_status()
             payload = response.json()

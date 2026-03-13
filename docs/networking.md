@@ -41,6 +41,8 @@ Typical URLs:
 - `http://workstation:2024`
 - `http://workstation:8001/v1`
 
+This direct path is fine for API checks such as `/health`, but LangGraph Studio runs in the browser from `https://smith.langchain.com` and is more reliable when the laptop connects through an SSH tunnel on `127.0.0.1`.
+
 ## Fallback path: SSH tunnel
 
 If you prefer not to access the services directly over Tailscale, open local tunnels instead:
@@ -50,6 +52,12 @@ If you prefer not to access the services directly over Tailscale, open local tun
 ```
 
 That forwards the main service ports to localhost on the laptop.
+
+For LangGraph Studio, this is the recommended path:
+
+- open the tunnel
+- connect Studio to `http://127.0.0.1:2024`
+- use `http://127.0.0.1:2024/ops` for the fallback custom dashboard
 
 ## Security rule
 

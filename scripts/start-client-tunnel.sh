@@ -4,8 +4,8 @@ set -euo pipefail
 WORKSTATION_USER="${1:-user}"
 WORKSTATION_HOST="${2:-workstation}"
 
-echo "[INFO] Opening fallback SSH tunnels to ${WORKSTATION_USER}@${WORKSTATION_HOST}"
-echo "[INFO] This is an alternative access path. Tailscale-direct access is the default."
+echo "[INFO] Opening SSH tunnels to ${WORKSTATION_USER}@${WORKSTATION_HOST}"
+echo "[INFO] Recommended for LangGraph Studio browser access because Studio connects cleanly to http://127.0.0.1:2024."
 
 exec ssh \
   -N \

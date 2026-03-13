@@ -1,6 +1,6 @@
 # Client notes
 
-The preferred path is Tailscale, but SSH tunneling is fully usable when that is what you have.
+The preferred path for LangGraph Studio is the SSH tunnel, even if Tailscale is available, because the browser can then connect to `http://127.0.0.1:2024` locally.
 
 ## SSH-only laptop workflow
 
@@ -22,7 +22,7 @@ After that, use the framework from the laptop as if it were local:
 
 - Open WebUI: `http://127.0.0.1:3000`
 - LangGraph API: `http://127.0.0.1:2024`
-- Agent Ops UI: `http://127.0.0.1:2024/ui`
+- Agent Ops UI: `http://127.0.0.1:2024/ops`
 
 Typical flow:
 
@@ -58,8 +58,10 @@ If that fails with `Permission denied (publickey,password)`, add the workstation
 
 Use [scripts/start-tailscale-client.sh](/home/geraldebmer/repos/local-agent-devstack/scripts/start-tailscale-client.sh) if you want direct workstation access instead of SSH tunnels.
 
-When using Tailscale, the preferred orchestration path is:
+When using Tailscale, the preferred API path is:
 
 - Open WebUI at `http://workstation:3000`
 - LangGraph API at `http://workstation:2024`
-- connect LangGraph Studio to the workstation API URL
+- use `curl` or the fallback Agent Ops UI directly against the workstation URL
+
+For LangGraph Studio specifically, prefer the SSH tunnel path above and connect Studio to `http://127.0.0.1:2024`.

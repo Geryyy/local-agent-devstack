@@ -36,7 +36,7 @@ After startup, the typical workstation endpoints are:
 
 - Open WebUI: `http://workstation:3000`
 - LangGraph API: `http://workstation:2024`
-- legacy Agent Ops UI: `http://workstation:2024/ui`
+- fallback Agent Ops UI: `http://workstation:2024/ops`
 - vLLM: `http://workstation:8001/v1`
 - Ollama: `http://workstation:11434`
 - Qdrant: `http://workstation:6333`
@@ -99,9 +99,9 @@ Open WebUI: http://workstation:3000
 LangGraph API: http://workstation:2024
 ```
 
-Then connect LangGraph Studio to the workstation API URL.
+For browser-based LangGraph Studio, prefer the SSH tunnel path below so Studio connects to `http://127.0.0.1:2024` on the laptop instead of a raw Tailscale address.
 
-If you are using SSH only instead of Tailscale, keep the stack on the workstation and open local tunnels from the laptop:
+For LangGraph Studio and other browser-based tooling, keep the stack on the workstation and open local tunnels from the laptop:
 
 ```bash
 ./scripts/start-client-tunnel.sh youruser workstation
@@ -111,7 +111,7 @@ Then use these laptop-local URLs:
 
 - Open WebUI: `http://127.0.0.1:3000`
 - LangGraph API: `http://127.0.0.1:2024`
-- legacy Agent Ops UI: `http://127.0.0.1:2024/ui`
+- fallback Agent Ops UI: `http://127.0.0.1:2024/ops`
 - Ollama: `http://127.0.0.1:11434`
 
 If you want the old standalone host-run Studio dev path, [scripts/start-langgraph-studio.sh](/home/geraldebmer/repos/local-agent-devstack/scripts/start-langgraph-studio.sh) remains available as a fallback, but it is no longer the default startup path.
@@ -154,6 +154,8 @@ Implemented now:
 - `GET /health`
 - `GET /agents`
 - `GET /ui`
+- `GET /studio`
+- `GET /ops`
 - `POST /tasks`
 - `GET /tasks`
 - `GET /tasks/{task_id}`
@@ -174,7 +176,7 @@ Implemented now:
 - LangGraph-backed local execution loop for planner -> coder -> build
 - Qdrant-backed project memory indexing and retrieval for planner/coder prompts
 - writable workspace mounts so runs can edit repos and execute commands
-- built-in fallback dashboard for task creation, monitoring, and steering at `/ui`
+- built-in fallback dashboard for task creation, monitoring, and steering at `/ops`
 - run modes for `patch_only` and `patch_and_run`
 - basic server-sent event streaming for run state
 - premium-capable model routing with OpenAI or Anthropic fallbacks when a task is marked premium-eligible and retries cross the local threshold
@@ -188,7 +190,7 @@ Documented for later, not implemented yet:
 
 ## Dummy project workflow
 
-You can use either LangGraph Studio as the primary orchestration UI or the built-in fallback dashboard at `http://localhost:2024/ui`.
+You can use either LangGraph Studio as the primary orchestration UI or the built-in fallback dashboard at `http://localhost:2024/ops`.
 
 For legacy API usage, create a task against either:
 

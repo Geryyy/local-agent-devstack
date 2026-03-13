@@ -4,9 +4,10 @@ import asyncio
 import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
+from urllib.parse import quote
 from typing import Dict, List
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
 
 from build_agent import describe_build_agent
@@ -33,13 +34,28 @@ async def lifespan(_: FastAPI):
 app = FastAPI(title="local-agent-devstack Agent API", lifespan=lifespan)
 
 
+def _studio_url(request: Request) -> str:
+    base_url = str(request.base_url).rstrip("/")
+    return f"https://smith.langchain.com/studio/?baseUrl={quote(base_url, safe=':/')}"
+
+
 @app.get("/")
-def root() -> RedirectResponse:
-    return RedirectResponse(url="/ui")
+def root(request: Request) -> RedirectResponse:
+    return RedirectResponse(url=_studio_url(request))
+
+
+@app.get("/studio")
+def studio(request: Request) -> RedirectResponse:
+    return RedirectResponse(url=_studio_url(request))
 
 
 @app.get("/ui")
-def ui() -> FileResponse:
+def ui(request: Request) -> RedirectResponse:
+    return RedirectResponse(url=_studio_url(request))
+
+
+@app.get("/ops")
+def ops() -> FileResponse:
     return FileResponse(Path(__file__).resolve().parent / "static" / "dashboard.html")
 
 @app.get("/health")

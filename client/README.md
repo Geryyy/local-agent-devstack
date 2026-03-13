@@ -65,3 +65,20 @@ When using Tailscale, the preferred API path is:
 - use `curl` or the fallback Agent Ops UI directly against the workstation URL
 
 For LangGraph Studio specifically, prefer the SSH tunnel path above and connect Studio to `http://127.0.0.1:2024`.
+
+## Roo Code path
+
+For VS Code-native orchestration, use Roo Code plus the MCP bridge:
+
+```bash
+./scripts/start-client-tunnel.sh youruser cds-ebc.tailc07d54.ts.net
+./scripts/start-roo-mcp.sh
+```
+
+Then point Roo Code at:
+
+```bash
+/home/geraldebmer/repos/local-agent-devstack/scripts/start-roo-mcp.sh
+```
+
+The Roo-specific workflow and templates are documented in [docs/roo-code.md](/home/geraldebmer/repos/local-agent-devstack/docs/roo-code.md).

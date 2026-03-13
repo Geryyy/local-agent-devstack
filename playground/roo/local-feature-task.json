@@ -1,0 +1,18 @@
+{
+  "title": "Implement a small feature",
+  "description": "Make a focused code change, keep the patch reviewable, update nearby tests, and summarize what changed.",
+  "project_path": "playground/dummy-agent-app",
+  "execution_target": "local",
+  "task_type": "routine_coding",
+  "constraints": [
+    "keep changes small",
+    "prefer existing project patterns",
+    "do not add dependencies unless asked"
+  ],
+  "acceptance_criteria": [
+    "tests pass",
+    "changed files stay in scope",
+    "result is easy to review"
+  ],
+  "premium_allowed": false
+}

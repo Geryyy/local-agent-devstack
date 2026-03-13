@@ -1,0 +1,21 @@
+{
+  "title": "Implement a client-hosted feature",
+  "description": "Plan and execute a small feature against a project that remains on the client machine.",
+  "project_path": "/home/your-user/path/to/project",
+  "execution_target": "ssh",
+  "ssh_host": "client-tailnet-host-or-ip",
+  "ssh_user": "your-user",
+  "ssh_port": 22,
+  "task_type": "routine_coding",
+  "constraints": [
+    "keep changes small",
+    "respect existing repo conventions",
+    "do not touch unrelated files"
+  ],
+  "acceptance_criteria": [
+    "project tests pass",
+    "changed files stay in scope",
+    "result is easy to review"
+  ],
+  "premium_allowed": false
+}

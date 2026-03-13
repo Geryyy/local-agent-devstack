@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import uuid
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Dict, List
 
 from fastapi import FastAPI, HTTPException
@@ -39,7 +40,7 @@ def root() -> RedirectResponse:
 
 @app.get("/ui")
 def ui() -> FileResponse:
-    return FileResponse("/app/static/dashboard.html")
+    return FileResponse(Path(__file__).resolve().parent / "static" / "dashboard.html")
 
 @app.get("/health")
 def health() -> dict:

@@ -6,3 +6,4 @@ httpx
 redis
 psycopg[binary]
 langgraph
+langgraph-cli[inmem]

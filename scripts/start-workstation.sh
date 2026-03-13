@@ -50,6 +50,7 @@ default_services=(
   redis
   postgres
   open-webui
+  langgraph-api
 )
 
 docker compose config >/dev/null
@@ -58,8 +59,9 @@ docker compose ps
 
 echo
 echo "Open WebUI: http://localhost:3000"
-echo "LangGraph API: start separately with ./scripts/start-langgraph-studio.sh"
+echo "LangGraph API: http://localhost:2024"
 echo "Legacy API/UI: docker compose --profile legacy-api up -d agent-api"
+echo "Legacy API URL: http://localhost:2124"
 echo "Ollama    : http://localhost:11434"
 echo "Qdrant    : http://localhost:6333"
 echo

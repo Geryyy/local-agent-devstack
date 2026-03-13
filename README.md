@@ -64,19 +64,13 @@ cp .env.example .env
 ./scripts/start-tailscale-workstation.sh
 ```
 
-4. Start the workstation service stack:
+4. Start the workstation stack:
 
 ```bash
 ./scripts/start-workstation.sh
 ```
 
-5. Start the LangGraph dev server on the workstation:
-
-```bash
-./scripts/start-langgraph-studio.sh
-```
-
-This creates `.venv-langgraph`, installs the official local dev dependencies, and starts `langgraph dev` with [langgraph.json](/home/geraldebmer/repos/local-agent-devstack/langgraph.json).
+This now starts the Dockerized workstation services and the Dockerized LangGraph API on port `2024`.
 
 To stop the Docker services later without removing containers:
 
@@ -92,13 +86,13 @@ For a fuller teardown:
 
 The repo pins `VLLM_IMAGE` to `vllm/vllm-openai:v0.10.2`, but `vllm` is now opt-in behind the `vllm` Compose profile instead of part of the default workstation path.
 
-6. On the laptop, join the same tailnet:
+5. On the laptop, join the same tailnet:
 
 ```bash
 ./scripts/start-tailscale-client.sh
 ```
 
-7. Open the operator surfaces from the laptop:
+6. Open the operator surfaces from the laptop:
 
 ```text
 Open WebUI: http://workstation:3000
@@ -119,6 +113,8 @@ Then use these laptop-local URLs:
 - LangGraph API: `http://127.0.0.1:2024`
 - legacy Agent Ops UI: `http://127.0.0.1:2024/ui`
 - Ollama: `http://127.0.0.1:11434`
+
+If you want the old standalone host-run Studio dev path, [scripts/start-langgraph-studio.sh](/home/geraldebmer/repos/local-agent-devstack/scripts/start-langgraph-studio.sh) remains available as a fallback, but it is no longer the default startup path.
 
 ## LangGraph Studio workflow
 

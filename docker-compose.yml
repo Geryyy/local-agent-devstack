@@ -60,6 +60,44 @@ services:
     volumes:
       - open_webui_data:/app/backend/data
 
+  langgraph-api:
+    build:
+      context: ./agent_server
+      dockerfile: Dockerfile
+    container_name: langgraph-api
+    restart: unless-stopped
+    depends_on:
+      - postgres
+      - redis
+      - qdrant
+      - ollama
+    env_file:
+      - .env
+    environment:
+      AGENT_ROUTING_CONFIG: /workspace/configs/model-routing.yaml
+      AGENT_MODELS_CONFIG: /workspace/configs/models.yaml
+      AGENT_WORKSPACE_ROOT: /workspace
+      POSTGRES_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/agents
+      QDRANT_URL: http://qdrant:6333
+      REDIS_URL: redis://redis:6379/0
+      OLLAMA_BASE_URL: http://ollama:11434
+    ports:
+      - "2024:2024"
+    working_dir: /workspace
+    command:
+      - langgraph
+      - dev
+      - --config
+      - /workspace/langgraph.json
+      - --host
+      - 0.0.0.0
+      - --port
+      - "2024"
+      - --no-browser
+    volumes:
+      - ./:/workspace
+      - ${HOME}/.ssh:/ssh-src:ro
+
   vllm:
     image: ${VLLM_IMAGE:-vllm/vllm-openai:latest}
     container_name: vllm
@@ -104,7 +142,7 @@ services:
       AGENT_MODELS_CONFIG: ${AGENT_MODELS_CONFIG}
       AGENT_WORKSPACE_ROOT: /workspace
     ports:
-      - "2024:2024"
+      - "2124:2024"
     volumes:
       - ./agent_server:/app
       - ./configs:/configs:ro

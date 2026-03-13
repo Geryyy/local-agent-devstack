@@ -91,6 +91,8 @@ services:
       dockerfile: Dockerfile
     container_name: agent-api
     restart: unless-stopped
+    profiles:
+      - legacy-api
     depends_on:
       - postgres
       - redis

@@ -44,14 +44,22 @@ if (( ${#missing_vars[@]} > 0 )); then
   exit 1
 fi
 
+default_services=(
+  ollama
+  qdrant
+  redis
+  postgres
+  open-webui
+)
+
 docker compose config >/dev/null
-docker compose up -d
+docker compose up -d "${default_services[@]}"
 docker compose ps
 
 echo
 echo "Open WebUI: http://localhost:3000"
 echo "LangGraph API: start separately with ./scripts/start-langgraph-studio.sh"
-echo "Legacy API/UI: http://localhost:2024 when LangGraph dev is running"
+echo "Legacy API/UI: docker compose --profile legacy-api up -d agent-api"
 echo "Ollama    : http://localhost:11434"
 echo "Qdrant    : http://localhost:6333"
 echo
